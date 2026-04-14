@@ -18,7 +18,7 @@ services:
         # These public vars are embedded in the client bundle at build time.
         # Override here if you want a custom app name or URL in the UI.
         NEXT_PUBLIC_APP_NAME: "Francine CRM"
-        NEXT_PUBLIC_APP_URL: "http://localhost:3000"
+        NEXT_PUBLIC_APP_URL: "http://localhost:3001"
     image: francine-crm:latest
     container_name: francine
     restart: unless-stopped
@@ -34,7 +34,7 @@ services:
       HOSTNAME: "0.0.0.0"
     # Health check: ping the Next.js server every 30 s
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3001/api/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
