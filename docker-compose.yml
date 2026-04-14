@@ -1,0 +1,41 @@
+# docker-compose.yml — production-style local run
+#
+# Usage:
+#   cp .env.example .env.local          # fill in all values
+#   docker compose up --build
+#
+# The app will be available at http://localhost:3000
+#
+# All secrets are injected via env_file at runtime; nothing sensitive is
+# baked into the image at build time.
+
+services:
+  francine:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # These public vars are embedded in the client bundle at build time.
+        # Override here if you want a custom app name or URL in the UI.
+        NEXT_PUBLIC_APP_NAME: "Francine CRM"
+        NEXT_PUBLIC_APP_URL: "http://localhost:3000"
+    image: francine-crm:latest
+    container_name: francine
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      # Contains all server-side secrets (Google keys, NextAuth secret, etc.)
+      # Copy .env.example → .env.local and fill in before running.
+      - .env.local
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      HOSTNAME: "0.0.0.0"
+    # Health check: ping the Next.js server every 30 s
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
