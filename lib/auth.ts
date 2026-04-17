@@ -13,6 +13,9 @@ import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
 
 export const { auth, signIn, signOut, handlers } = NextAuth({
+  // Required when the app runs behind a reverse proxy (nginx, Caddy, Traefik).
+  // Also set AUTH_TRUST_HOST=true in the environment as a second guard.
+  trustHost: true,
   providers: [
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID!,
