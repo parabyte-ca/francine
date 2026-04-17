@@ -78,7 +78,7 @@ async function DashboardContent() {
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-semibold text-gray-900 flex items-center gap-2">
               <CalendarDays className="w-4 h-4 text-brand-600" />
-              Today's Appointments
+              Today&apos;s Appointments
             </h2>
             <Link href="/dashboard/scheduling" className="text-xs text-brand-600 hover:underline">View all</Link>
           </div>

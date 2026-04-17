@@ -41,6 +41,7 @@ export default function NewOrderPage() {
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm<FormData>({ resolver: zodResolver(schema) });
 
@@ -113,6 +114,7 @@ export default function NewOrderPage() {
                       type="button"
                       className="w-full text-left px-4 py-2.5 hover:bg-gray-50 transition-colors"
                       onClick={() => {
+                        setValue("client_id", c.client_id, { shouldValidate: true });
                         setClientSearch(`${c.name} (${c.email})`);
                         setClients([]);
                       }}

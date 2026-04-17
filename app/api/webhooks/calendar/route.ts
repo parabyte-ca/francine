@@ -17,10 +17,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true });
   }
 
-  // For "exists" and "not_exists" states, find the changed event
-  const channelToken = req.headers.get("x-goog-channel-token");
-  // Optionally verify channelToken against a stored secret
-
   // Extract event ID from the resource URI header if available
   const resourceUri = req.headers.get("x-goog-resource-uri") ?? "";
   const eventIdMatch = resourceUri.match(/events\/([^?]+)/);

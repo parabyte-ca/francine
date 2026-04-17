@@ -64,9 +64,11 @@ export async function resolvePrice(input: PricingInput): Promise<PricingResult> 
 
   // ── Step 1: Manual override (staff-set one-off price) ─────────────────────
   if (manual_override_price !== undefined && manual_override_price !== null) {
+    const resolvedUnit = input.unit ?? "hour";
     const total = applyMinimum(quantity, manual_override_price, 0);
     return {
       unit_price: manual_override_price,
+      unit: resolvedUnit,
       minimum_charge: 0,
       total_price: total,
       rate_source: "manual_override",
@@ -85,6 +87,7 @@ export async function resolvePrice(input: PricingInput): Promise<PricingResult> 
     );
     return {
       unit_price: customRate.override_price,
+      unit: customRate.unit,
       minimum_charge: customRate.minimum_charge,
       total_price: total,
       rate_source: "custom",
@@ -103,6 +106,7 @@ export async function resolvePrice(input: PricingInput): Promise<PricingResult> 
     );
     return {
       unit_price: standardRate.base_price,
+      unit: standardRate.unit,
       minimum_charge: standardRate.minimum_charge,
       total_price: total,
       rate_source: "standard",
