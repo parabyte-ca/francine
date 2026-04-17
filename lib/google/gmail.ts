@@ -31,7 +31,7 @@ function buildRawMessage(params: {
   const boundary = `----=_Part_${Date.now()}`;
   const from = params.from || process.env.GMAIL_FROM_ADDRESS!;
 
-  let message = [
+  const message = [
     `From: ${from}`,
     `To: ${params.to}`,
     `Subject: ${params.subject}`,

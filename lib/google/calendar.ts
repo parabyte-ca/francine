@@ -12,7 +12,7 @@
 
 import { google, calendar_v3 } from "googleapis";
 import { getServiceAccountAuth } from "./auth";
-import type { Appointment, AvailabilitySlot } from "@/types";
+import type { AvailabilitySlot } from "@/types";
 
 // ---------------------------------------------------------------------------
 // Internal helpers

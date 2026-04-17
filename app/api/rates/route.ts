@@ -12,6 +12,7 @@ import {
   listCustomRates,
   createCustomRate,
   updateClient,
+  getCustomRate,
 } from "@/lib/google/sheets";
 import type { CustomRate } from "@/types";
 
@@ -47,6 +48,15 @@ export async function POST(req: NextRequest) {
   const parsed = CreateCustomRateSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 422 });
+  }
+
+  // Prevent duplicate rates for the same client + service_type combination
+  const existing = await getCustomRate(parsed.data.client_id, parsed.data.service_type);
+  if (existing) {
+    return NextResponse.json(
+      { error: `A custom rate for "${parsed.data.service_type}" already exists for this client. Update it instead.` },
+      { status: 409 }
+    );
   }
 
   const rate: CustomRate = {

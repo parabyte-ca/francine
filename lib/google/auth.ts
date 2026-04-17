@@ -49,7 +49,7 @@ export function getServiceAccountAuth(): Auth.GoogleAuth {
 
   _serviceAccountAuth = new google.auth.GoogleAuth({
     credentials,
-    scopes: SCOPES,
+    scopes: [...SCOPES],
   });
 
   return _serviceAccountAuth;

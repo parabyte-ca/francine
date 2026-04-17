@@ -187,6 +187,7 @@ export interface PricingInput {
 
 export interface PricingResult {
   unit_price: number;
+  unit: RateUnit;             // resolved unit from the winning rate
   minimum_charge: number;
   total_price: number;        // max(quantity × unit_price, minimum_charge)
   rate_source: RateSource;

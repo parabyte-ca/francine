@@ -100,9 +100,7 @@ export async function POST(req: NextRequest) {
         service_type: item.service_type,
         description:  item.description || item.service_type,
         quantity:     item.quantity,
-        unit:         priceResult.rate_source === "standard"
-          ? (item.unit ?? "hour")
-          : (item.unit ?? "hour"),
+        unit:         priceResult.unit,
         unit_price:   priceResult.unit_price,
         total_price:  priceResult.total_price,
         rate_source:  priceResult.rate_source,

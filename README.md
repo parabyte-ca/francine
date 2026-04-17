@@ -1,6 +1,6 @@
 # Francine CRM
 
-**Version 0.8**
+**Version 0.8.1**
 
 A lightweight, Google Workspace-backed CRM for SMB service operations. Francine replaces heavy platforms like Jobber with a purpose-built Next.js front-end that uses Google Sheets as its database, Google Calendar for scheduling, Google Drive for invoice storage, and Gmail for transactional email — with no third-party SaaS subscription required.
 
@@ -325,6 +325,30 @@ Every line item records its `rate_source` (`standard`, `custom`, or `manual_over
 ---
 
 ## Changelog
+
+### v0.8.1 — Bug fixes and stability
+
+**Docker / dependency fixes**
+- `Dockerfile`: changed `npm ci` to `npm install` to resolve lock-file compatibility issues in containers
+- `package.json`: removed non-existent `@radix-ui/react-badge` dependency
+
+**TypeScript / lint fixes**
+- `lib/google/auth.ts`: spread `SCOPES` tuple into array literal to satisfy `GoogleAuth` constructor type
+- `app/(dashboard)/customers/page.tsx`: replaced `title` prop with `aria-label` on `Star` icon (DOM attribute warning)
+- `.eslintrc.json`: added ESLint config; fixed `react/no-unescaped-entities` error in dashboard page
+
+**Critical bug fixes**
+- `app/(dashboard)/orders/new/page.tsx`: client selection dropdown now calls `setValue("client_id", ...)` — previously the hidden input was never populated, causing every new-order submission to fail validation
+- `lib/pricing-engine.ts` + `types/index.ts`: added `unit` field to `PricingResult`; each rate tier now returns its own unit. Fixed `app/api/invoices/route.ts` where both branches of a dead ternary always produced `item.unit ?? "hour"`, ignoring the resolved rate's unit
+
+**Other fixes**
+- `app/(dashboard)/scheduling/page.tsx`: `startOfWeek` in `dateFnsLocalizer` now passes the calendar date argument instead of always using `new Date()`
+- `lib/google/calendar.ts`: removed unused `Appointment` import
+- `lib/google/gmail.ts`: changed `let message` to `const` (value never reassigned)
+- `app/api/webhooks/calendar/route.ts`: removed unused `channelToken` variable
+- `app/api/rates/route.ts`: added 409 duplicate-rate guard — creating a custom rate for a `client_id + service_type` pair that already exists now returns a clear error instead of silently appending a duplicate row
+
+---
 
 ### v0.8 — Initial release
 
