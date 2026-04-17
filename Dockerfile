@@ -31,7 +31,7 @@ COPY . .
 # Public env vars referenced in client components (NEXT_PUBLIC_*)
 # These are NOT secrets — they become visible in the browser bundle.
 ARG NEXT_PUBLIC_APP_NAME="Francine CRM"
-ARG NEXT_PUBLIC_APP_URL="http://localhost:3000"
+ARG NEXT_PUBLIC_APP_URL="http://localhost:3002"
 
 ENV NEXT_TELEMETRY_DISABLED=1 \
     NODE_ENV=production \
@@ -65,9 +65,9 @@ COPY --from=builder --chown=nextjs:nodejs /app/public        ./public
 
 USER nextjs
 
-EXPOSE 3000
+EXPOSE 3002
 
-ENV PORT=3000 \
+ENV PORT=3002 \
     HOSTNAME="0.0.0.0" \
     NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1
