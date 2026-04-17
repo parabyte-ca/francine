@@ -1,6 +1,6 @@
 # Francine CRM
 
-**Version 0.8.2**
+**Version 0.8.3**
 
 A lightweight, Google Workspace-backed CRM for SMB service operations. Francine replaces heavy platforms like Jobber with a purpose-built Next.js front-end that uses Google Sheets as its database, Google Calendar for scheduling, Google Drive for invoice storage, and Gmail for transactional email — with no third-party SaaS subscription required.
 
@@ -147,7 +147,9 @@ cp .env.example .env.local
 | `GOOGLE_CLIENT_ID` | OAuth2 client ID (for staff login) |
 | `GOOGLE_CLIENT_SECRET` | OAuth2 client secret |
 | `NEXTAUTH_SECRET` | Random string — `openssl rand -base64 32` |
-| `NEXTAUTH_URL` | Full URL of the app, e.g. `http://localhost:3002` |
+| `AUTH_URL` | Canonical app URL — `https://francine.lantix.ca` (NextAuth v5) |
+| `NEXTAUTH_URL` | Same as `AUTH_URL` — kept for backwards compatibility |
+| `AUTH_TRUST_HOST` | Set to `true` when running behind a reverse proxy |
 | `GOOGLE_SERVICE_ACCOUNT_KEY_BASE64` | Base64-encoded service account JSON key |
 | `GOOGLE_SHEET_ID` | ID from the Google Sheets URL |
 | `GOOGLE_CALENDAR_ID` | Calendar ID (use `primary` for the default calendar) |
@@ -231,7 +233,10 @@ Final image size is approximately 150–250 MB. No secrets are baked into any la
 1. Create a project at [console.cloud.google.com](https://console.cloud.google.com)
 2. Enable: **Sheets API**, **Calendar API**, **Drive API**, **Gmail API**
 3. Create a **Service Account** → grant it no project roles → download JSON key → base64-encode it
-4. Create an **OAuth2 client** (Web application) → add `{NEXTAUTH_URL}/api/auth/callback/google` as an authorized redirect URI
+4. Create an **OAuth2 client** (Web application) → add the following as an **Authorized redirect URI**:
+   ```
+   https://francine.lantix.ca/api/auth/callback/google
+   ```
 
 ### 2. Google Workspace Resources
 
@@ -325,6 +330,16 @@ Every line item records its `rate_source` (`standard`, `custom`, or `manual_over
 ---
 
 ## Changelog
+
+### v0.8.3 — Production domain configuration
+
+- Set canonical domain to `https://francine.lantix.ca` across all config
+- `.env.example`: added `AUTH_URL`, `AUTH_TRUST_HOST=true`; updated `NEXTAUTH_URL` and `NEXT_PUBLIC_APP_URL` to production domain
+- `docker-compose.yml`: `AUTH_URL`, `NEXTAUTH_URL`, `AUTH_TRUST_HOST` hardcoded in `environment` block (override `env_file` for these keys); `NEXT_PUBLIC_APP_URL` build arg updated
+- `lib/auth.ts`: added `trustHost: true` to NextAuth config (belt-and-suspenders with `AUTH_TRUST_HOST` env var) — required when running behind a reverse proxy
+- `README.md`: documented `AUTH_URL` / `AUTH_TRUST_HOST` env vars; added explicit Google OAuth redirect URI (`https://francine.lantix.ca/api/auth/callback/google`)
+
+---
 
 ### v0.8.2 — Port change
 
