@@ -1,6 +1,6 @@
 # Francine CRM
 
-**Version 0.8.1**
+**Version 0.8.2**
 
 A lightweight, Google Workspace-backed CRM for SMB service operations. Francine replaces heavy platforms like Jobber with a purpose-built Next.js front-end that uses Google Sheets as its database, Google Calendar for scheduling, Google Drive for invoice storage, and Gmail for transactional email — with no third-party SaaS subscription required.
 
@@ -147,7 +147,7 @@ cp .env.example .env.local
 | `GOOGLE_CLIENT_ID` | OAuth2 client ID (for staff login) |
 | `GOOGLE_CLIENT_SECRET` | OAuth2 client secret |
 | `NEXTAUTH_SECRET` | Random string — `openssl rand -base64 32` |
-| `NEXTAUTH_URL` | Full URL of the app, e.g. `http://localhost:3000` |
+| `NEXTAUTH_URL` | Full URL of the app, e.g. `http://localhost:3002` |
 | `GOOGLE_SERVICE_ACCOUNT_KEY_BASE64` | Base64-encoded service account JSON key |
 | `GOOGLE_SHEET_ID` | ID from the Google Sheets URL |
 | `GOOGLE_CALENDAR_ID` | Calendar ID (use `primary` for the default calendar) |
@@ -171,7 +171,7 @@ base64 -i path/to/service-account-key.json | tr -d '\n'
 ```bash
 npm install
 npm run dev
-# App available at http://localhost:3000
+# App available at http://localhost:3002
 ```
 
 Other commands:
@@ -194,8 +194,8 @@ cp .env.example .env.local
 # 2. Build and start
 docker compose up --build
 
-# App available at http://localhost:3000
-# Health check: http://localhost:3000/api/health
+# App available at http://localhost:3002
+# Health check: http://localhost:3002/api/health
 ```
 
 To rebuild after code changes:
@@ -258,7 +258,7 @@ Gmail sending uses the same service account with domain-wide delegation, or an O
 After the app is running, call the setup endpoint once to write the header row to every sheet tab:
 
 ```bash
-curl -X POST http://localhost:3000/api/setup \
+curl -X POST http://localhost:3002/api/setup \
   -H "Cookie: <your session cookie after signing in>"
 ```
 
@@ -325,6 +325,13 @@ Every line item records its `rate_source` (`standard`, `custom`, or `manual_over
 ---
 
 ## Changelog
+
+### v0.8.2 — Port change
+
+- App now runs on port **3002** instead of 3000
+- Updated: `Dockerfile` (`EXPOSE`, `PORT`, `ENV`), `docker-compose.yml` (port mapping, `PORT`, health-check URL, `NEXT_PUBLIC_APP_URL`), `.env.example` (`NEXTAUTH_URL`, `NEXT_PUBLIC_APP_URL`)
+
+---
 
 ### v0.8.1 — Bug fixes and stability
 
