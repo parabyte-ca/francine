@@ -124,7 +124,7 @@ async function updateRow(
   // Read the existing row to merge updates
   const existingRes = await sheets.spreadsheets.values.get({
     spreadsheetId: SHEET_ID(),
-    range: `${tabName}!A${sheetRow}:ZZ${sheetRow}`,
+    range: `${tabName}!A${sheetRow}:Z${sheetRow}`,
   });
   const existing = (existingRes.data.values?.[0] ?? []).map(String);
   const existingObj = rowToObject<Record<string, unknown>>(headers, existing);
@@ -368,25 +368,40 @@ export async function initializeSheetHeaders(): Promise<void> {
   const sheetId = SHEET_ID();
 
   const tabs = [
-    { name: "Clients", headers: CLIENT_HEADERS },
-    { name: "Orders", headers: ORDER_HEADERS },
-    { name: "Standard_Rates", headers: STANDARD_RATE_HEADERS },
-    { name: "Custom_Rates", headers: CUSTOM_RATE_HEADERS },
-    { name: "Appointments", headers: APPOINTMENT_HEADERS },
-    { name: "Invoices", headers: INVOICE_HEADERS },
+    { name: "Clients",            headers: CLIENT_HEADERS },
+    { name: "Orders",             headers: ORDER_HEADERS },
+    { name: "Standard_Rates",     headers: STANDARD_RATE_HEADERS },
+    { name: "Custom_Rates",       headers: CUSTOM_RATE_HEADERS },
+    { name: "Appointments",       headers: APPOINTMENT_HEADERS },
+    { name: "Invoices",           headers: INVOICE_HEADERS },
     { name: "Invoice_Line_Items", headers: LINE_ITEM_HEADERS },
   ];
 
-  const requests = tabs.map((tab) => ({
-    range: `${tab.name}!A1`,
-    values: [tab.headers],
-  }));
+  // Discover which tabs already exist
+  const meta = await sheets.spreadsheets.get({ spreadsheetId: sheetId });
+  const existingTitles = new Set(
+    (meta.data.sheets ?? []).map((s) => s.properties?.title ?? "")
+  );
 
+  // Create any missing tabs
+  const missingTabs = tabs.filter((t) => !existingTitles.has(t.name));
+  if (missingTabs.length > 0) {
+    await sheets.spreadsheets.batchUpdate({
+      spreadsheetId: sheetId,
+      requestBody: {
+        requests: missingTabs.map((t) => ({
+          addSheet: { properties: { title: t.name } },
+        })),
+      },
+    });
+  }
+
+  // Write header rows to all tabs
   await sheets.spreadsheets.values.batchUpdate({
     spreadsheetId: sheetId,
     requestBody: {
       valueInputOption: "RAW",
-      data: requests,
+      data: tabs.map((t) => ({ range: `${t.name}!A1`, values: [t.headers] })),
     },
   });
 }
