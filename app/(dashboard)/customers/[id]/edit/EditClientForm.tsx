@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -8,6 +8,13 @@ import { z } from "zod";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
 import type { Client } from "@/types";
+
+function autoAbbreviation(name: string): string {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  if (words.length >= 2) return (words[0][0] + words[1][0]).toUpperCase();
+  if (words[0]?.length >= 2) return words[0].slice(0, 2).toUpperCase();
+  return (words[0] || "XX").toUpperCase().padEnd(2, "X").slice(0, 2);
+}
 
 const schema = z.object({
   name:               z.string().min(1, "Name is required"),
@@ -21,6 +28,7 @@ const schema = z.object({
   language_pair:      z.string().default(""),
   default_tax_exempt: z.boolean().default(false),
   notes:              z.string().default(""),
+  abbreviation:       z.string().default(""),
 });
 type FormData = z.infer<typeof schema>;
 
@@ -28,10 +36,13 @@ export default function EditClientForm({ client }: { client: Client }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [abbrManual, setAbbrManual] = useState(!!client.abbreviation);
 
   const {
     register,
     handleSubmit,
+    setValue,
+    watch,
     formState: { errors },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -47,8 +58,17 @@ export default function EditClientForm({ client }: { client: Client }) {
       language_pair:      client.language_pair ?? "",
       default_tax_exempt: client.default_tax_exempt,
       notes:              client.notes,
+      abbreviation:       client.abbreviation || autoAbbreviation(client.name),
     },
   });
+
+  const nameValue = watch("name", client.name);
+
+  useEffect(() => {
+    if (!abbrManual) {
+      setValue("abbreviation", autoAbbreviation(nameValue));
+    }
+  }, [nameValue, abbrManual, setValue]);
 
   const onSubmit = async (data: FormData) => {
     setLoading(true);
@@ -90,6 +110,26 @@ export default function EditClientForm({ client }: { client: Client }) {
         <div>
           <label className="label">Company</label>
           <input type="text" {...register("company")} className="input" />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label className="label">
+            Abbreviation
+            <span className="ml-1 text-xs font-normal text-gray-400">(used in invoice numbers, e.g. HL)</span>
+          </label>
+          <input
+            type="text"
+            {...register("abbreviation")}
+            className="input font-mono uppercase"
+            maxLength={4}
+            placeholder="Auto"
+            onChange={(e) => {
+              setAbbrManual(e.target.value.length > 0);
+              setValue("abbreviation", e.target.value.toUpperCase().slice(0, 4));
+            }}
+          />
         </div>
       </div>
 

@@ -27,6 +27,7 @@ const PatchClientSchema = z.object({
   language_pair:      z.string().optional(),
   default_tax_exempt: z.boolean().optional(),
   notes:              z.string().optional(),
+  abbreviation:       z.string().max(4).optional(),
 });
 
 export async function GET(

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, FileText, CheckCircle2, XCircle } from "lucide-react";
 
@@ -15,44 +15,65 @@ interface Props {
 
 export default function OrderActions({ orderId, status, hasInvoice }: Props) {
   const router = useRouter();
+  const [currentStatus, setCurrentStatus] = useState<OrderStatus>(status);
   const [saving, setSaving] = useState(false);
+  const [statusError, setStatusError] = useState<string | null>(null);
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
 
+  // Keep local state in sync when the server re-renders with fresh data
+  useEffect(() => { setCurrentStatus(status); }, [status]);
+
   const updateStatus = async (next: OrderStatus) => {
+    setCurrentStatus(next);   // optimistic update
+    setStatusError(null);
     setSaving(true);
     try {
-      await fetch(`/api/orders/${orderId}`, {
+      const res = await fetch(`/api/orders/${orderId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: next }),
       });
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        setStatusError(typeof json.error === "string" ? json.error : "Failed to update status");
+        setCurrentStatus(status); // revert on error
+        return;
+      }
       router.refresh();
+    } catch {
+      setStatusError("Network error — could not update status");
+      setCurrentStatus(status);
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <div className="flex items-center gap-2 flex-wrap">
-      <select
-        disabled={saving}
-        value={status}
-        onChange={(e) => updateStatus(e.target.value as OrderStatus)}
-        className="input max-w-[12rem]"
-      >
-        {STATUSES.map((s) => (
-          <option key={s} value={s}>{s.replace("_", " ")}</option>
-        ))}
-      </select>
-
-      {!hasInvoice && status !== "cancelled" && (
-        <button
-          onClick={() => setShowInvoiceModal(true)}
-          className="btn-primary text-xs py-1.5"
+    <div className="flex flex-col items-end gap-1">
+      <div className="flex items-center gap-2 flex-wrap">
+        <select
           disabled={saving}
+          value={currentStatus}
+          onChange={(e) => updateStatus(e.target.value as OrderStatus)}
+          className="input max-w-[12rem]"
         >
-          <FileText className="w-3.5 h-3.5" /> Generate Invoice
-        </button>
+          {STATUSES.map((s) => (
+            <option key={s} value={s}>{s.replace(/_/g, " ")}</option>
+          ))}
+        </select>
+
+        {!hasInvoice && currentStatus !== "cancelled" && (
+          <button
+            onClick={() => setShowInvoiceModal(true)}
+            className="btn-primary text-xs py-1.5"
+            disabled={saving}
+          >
+            <FileText className="w-3.5 h-3.5" /> Generate Invoice
+          </button>
+        )}
+      </div>
+      {statusError && (
+        <p className="text-xs text-red-600">{statusError}</p>
       )}
 
       {showInvoiceModal && (
