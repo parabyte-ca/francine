@@ -75,8 +75,20 @@ function GenerateInvoiceModal({
   onClose: () => void;
   onDone: (id: string) => void;
 }) {
+  const LINE_ITEM_TYPES = [
+    "Interpretation — Consecutive",
+    "Interpretation — Simultaneous",
+    "Interpretation — Telephone",
+    "Translation",
+    "Transcription",
+    "Document Review",
+    "Mileage",
+    "Parking",
+    "Other",
+  ];
+
   const [items, setItems] = useState([
-    { service_type: "", quantity: 1, manual_override_price: "", description: "" },
+    { service_type: "", service_type_custom: "", quantity: 1, manual_override_price: "", description: "" },
   ]);
   const [dueDays, setDueDays] = useState(30);
   const [notes, setNotes] = useState("");
@@ -84,7 +96,7 @@ function GenerateInvoiceModal({
   const [error, setError] = useState<string | null>(null);
 
   const addItem = () =>
-    setItems((prev) => [...prev, { service_type: "", quantity: 1, manual_override_price: "", description: "" }]);
+    setItems((prev) => [...prev, { service_type: "", service_type_custom: "", quantity: 1, manual_override_price: "", description: "" }]);
 
   const removeItem = (i: number) =>
     setItems((prev) => prev.filter((_, idx) => idx !== i));
@@ -97,7 +109,7 @@ function GenerateInvoiceModal({
     const line_items = items
       .filter((it) => it.service_type.trim())
       .map((it) => ({
-        service_type: it.service_type,
+        service_type: it.service_type === "Other" ? (it.service_type_custom.trim() || "Other") : it.service_type,
         description: it.description,
         quantity: Number(it.quantity) || 1,
         manual_override_price: it.manual_override_price
@@ -162,12 +174,24 @@ function GenerateInvoiceModal({
                     </button>
                   )}
                 </div>
-                <input
+                <select
                   className="input"
-                  placeholder="Service type (e.g. Translation)"
                   value={it.service_type}
-                  onChange={(e) => update(i, { service_type: e.target.value })}
-                />
+                  onChange={(e) => update(i, { service_type: e.target.value, service_type_custom: "" })}
+                >
+                  <option value="">Select service type…</option>
+                  {LINE_ITEM_TYPES.map((t) => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
+                {it.service_type === "Other" && (
+                  <input
+                    className="input"
+                    placeholder="Describe the service…"
+                    value={it.service_type_custom}
+                    onChange={(e) => update(i, { service_type_custom: e.target.value })}
+                  />
+                )}
                 <input
                   className="input"
                   placeholder="Description (optional)"
