@@ -10,6 +10,13 @@ import { auth } from "@/lib/auth";
 import { createClient, listClients } from "@/lib/google/sheets";
 import type { Client } from "@/types";
 
+function autoAbbreviation(name: string): string {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  if (words.length >= 2) return (words[0][0] + words[1][0]).toUpperCase();
+  if (words[0]?.length >= 2) return words[0].slice(0, 2).toUpperCase();
+  return (words[0] || "XX").toUpperCase().padEnd(2, "X").slice(0, 2);
+}
+
 const CreateClientSchema = z.object({
   name:                z.string().min(1),
   email:               z.string().email(),
@@ -22,6 +29,7 @@ const CreateClientSchema = z.object({
   language_pair:       z.string().default(""),
   default_tax_exempt:  z.boolean().default(false),
   notes:               z.string().default(""),
+  abbreviation:        z.string().max(4).default(""),
 });
 
 export async function GET(req: NextRequest) {
@@ -55,10 +63,12 @@ export async function POST(req: NextRequest) {
   }
 
   const now = new Date().toISOString();
+  const abbr = parsed.data.abbreviation.trim() || autoAbbreviation(parsed.data.name);
   const client: Client = {
     client_id:      uuidv4(),
     has_custom_rates: false,
     ...parsed.data,
+    abbreviation: abbr.toUpperCase().slice(0, 4),
     created_at: now,
     updated_at: now,
   };

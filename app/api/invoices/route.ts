@@ -147,7 +147,7 @@ export async function POST(req: NextRequest) {
 
   // ── Build invoice record ───────────────────────────────────────────────────
   const invoiceId     = uuidv4();
-  const invoiceNumber = await nextInvoiceNumber();
+  const invoiceNumber = await nextInvoiceNumber(client.abbreviation || "");
   const now           = new Date();
   const issueDate     = now.toISOString().split("T")[0];
   const dueDate       = new Date(now.getTime() + due_days * 86_400_000)

@@ -98,6 +98,7 @@ function generateClient(): Client {
     postal_code:        generatePostalCode(location.postalPrefix),
     company,
     language_pair:      langPair,
+    abbreviation:       (firstName[0] + lastName[0]).toUpperCase(),
     has_custom_rates:   false,
     default_tax_exempt: Math.random() < 0.15,
     notes:              "",

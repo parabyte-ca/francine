@@ -35,7 +35,20 @@ const CALENDAR_ID = () =>
  * Returns free/busy information for the given time range.
  * Slots are broken into `slotMinutes`-minute increments and flagged
  * available/busy based on existing events.
+ * Only slots whose local start hour falls within [DAY_START_HOUR, DAY_END_HOUR)
+ * are included (default 08:00–17:00 America/Toronto, every day of the week).
  */
+const DAY_START_HOUR = 8;
+const DAY_END_HOUR   = 17;
+const CALENDAR_TZ    = process.env.CALENDAR_TIMEZONE ?? "America/Toronto";
+
+function localHour(date: Date): number {
+  return Number(
+    new Intl.DateTimeFormat("en-CA", { hour: "numeric", hour12: false, timeZone: CALENDAR_TZ })
+      .format(date)
+  );
+}
+
 export async function getAvailability(
   startIso: string,
   endIso: string,
@@ -54,7 +67,7 @@ export async function getAvailability(
   const busyPeriods =
     freeBusyRes.data.calendars?.[CALENDAR_ID()]?.busy ?? [];
 
-  // Build a slot grid
+  // Build a slot grid, restricted to business hours every day
   const slots: AvailabilitySlot[] = [];
   let cursor = new Date(startIso).getTime();
   const end = new Date(endIso).getTime();
@@ -63,18 +76,20 @@ export async function getAvailability(
     const slotStart = new Date(cursor);
     const slotEnd = new Date(cursor + slotMinutes * 60_000);
 
-    const isBusy = busyPeriods.some((b) => {
-      const bStart = new Date(b.start!).getTime();
-      const bEnd = new Date(b.end!).getTime();
-      // Overlap: slot starts before busy ends AND slot ends after busy starts
-      return slotStart.getTime() < bEnd && slotEnd.getTime() > bStart;
-    });
+    const hour = localHour(slotStart);
+    if (hour >= DAY_START_HOUR && hour < DAY_END_HOUR) {
+      const isBusy = busyPeriods.some((b) => {
+        const bStart = new Date(b.start!).getTime();
+        const bEnd = new Date(b.end!).getTime();
+        return slotStart.getTime() < bEnd && slotEnd.getTime() > bStart;
+      });
 
-    slots.push({
-      start: slotStart.toISOString(),
-      end: slotEnd.toISOString(),
-      available: !isBusy,
-    });
+      slots.push({
+        start: slotStart.toISOString(),
+        end: slotEnd.toISOString(),
+        available: !isBusy,
+      });
+    }
 
     cursor += slotMinutes * 60_000;
   }

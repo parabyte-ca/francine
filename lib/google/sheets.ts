@@ -156,7 +156,7 @@ const CLIENT_HEADERS: (keyof Client)[] = [
   "client_id", "name", "email", "phone",
   "street", "city", "province", "postal_code",
   "company", "language_pair", "has_custom_rates", "default_tax_exempt",
-  "notes", "created_at", "updated_at",
+  "notes", "created_at", "updated_at", "abbreviation",
 ];
 
 const ORDER_HEADERS: (keyof Order)[] = [
@@ -361,14 +361,12 @@ export async function appendLineItem(item: InvoiceLineItem): Promise<void> {
 // ---------------------------------------------------------------------------
 // Utility: generate next invoice number
 // ---------------------------------------------------------------------------
-export async function nextInvoiceNumber(): Promise<string> {
+export async function nextInvoiceNumber(clientAbbr: string): Promise<string> {
+  const prefix = (clientAbbr || "INV").toUpperCase().slice(0, 4);
   const invoices = await listInvoices();
-  const year = new Date().getFullYear();
-  const yearInvoices = invoices.filter((i) =>
-    i.invoice_number.startsWith(`INV-${year}-`)
-  );
-  const seq = yearInvoices.length + 1;
-  return `INV-${year}-${String(seq).padStart(4, "0")}`;
+  const clientInvoices = invoices.filter((i) => i.invoice_number.startsWith(prefix));
+  const seq = clientInvoices.length + 1;
+  return `${prefix}${String(seq).padStart(4, "0")}`;
 }
 
 // ---------------------------------------------------------------------------

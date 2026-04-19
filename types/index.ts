@@ -58,6 +58,7 @@ export interface Client {
   notes: string;
   created_at: string;         // ISO-8601
   updated_at: string;
+  abbreviation: string;       // 2-char invoice prefix, e.g. "HL" for "High Life"
 }
 
 // ---------------------------------------------------------------------------
