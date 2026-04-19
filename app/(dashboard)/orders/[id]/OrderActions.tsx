@@ -58,7 +58,7 @@ export default function OrderActions({ orderId, status, hasInvoice }: Props) {
           className="input max-w-[12rem]"
         >
           {STATUSES.map((s) => (
-            <option key={s} value={s}>{s.replace(/_/g, " ")}</option>
+            <option key={s} value={s}>{s.split("_").map((w) => w[0].toUpperCase() + w.slice(1)).join(" ")}</option>
           ))}
         </select>
 
@@ -156,12 +156,15 @@ function GenerateInvoiceModal({
           line_items,
         }),
       });
-      const json = await res.json();
+      let json: Record<string, unknown> = {};
+      try { json = await res.json(); } catch { /* non-JSON error body */ }
       if (!res.ok) {
-        setError(typeof json.error === "string" ? json.error : JSON.stringify(json.error));
+        setError(typeof json.error === "string" ? json.error : `Server error ${res.status} — check that standard rates are configured for these service types.`);
         return;
       }
-      onDone(json.data.invoice.invoice_id);
+      onDone((json.data as { invoice: { invoice_id: string } }).invoice.invoice_id);
+    } catch {
+      setError("Network error — could not reach the server.");
     } finally {
       setLoading(false);
     }
