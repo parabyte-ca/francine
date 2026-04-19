@@ -73,18 +73,11 @@ export default function InvoiceActions({ invoiceId, status }: Props) {
         </div>
       )}
 
-      {status === "draft" && (
-        <button onClick={send} disabled={sending} className="btn-primary text-xs py-1.5">
-          {sending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-          Send via Email
-        </button>
-      )}
-
-      {status === "sent" && (
+      {(status === "draft" || status === "sent") && (
         <>
           <button onClick={send} disabled={sending} className="btn-secondary text-xs py-1.5">
             {sending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-            Resend
+            {status === "draft" ? "Send via Email" : "Resend"}
           </button>
           <button onClick={() => setPayModal(true)} className="btn-primary text-xs py-1.5">
             <DollarSign className="w-3.5 h-3.5" /> Mark Paid
