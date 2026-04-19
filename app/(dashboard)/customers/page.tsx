@@ -16,7 +16,7 @@ async function ClientsGrid() {
     return (
       <div className="text-center py-16 text-gray-400">
         <p>No clients yet.</p>
-        <Link href="/dashboard/customers/new" className="text-brand-600 hover:underline mt-2 inline-block">
+        <Link href="/customers" className="text-brand-600 hover:underline mt-2 inline-block">
           Add your first client
         </Link>
       </div>
@@ -68,7 +68,7 @@ export default function CustomersPage() {
         title="Customers"
         subtitle="Client database and rate cards"
         actions={
-          <Link href="/dashboard/customers/new" className="btn-primary">
+          <Link href="/customers" className="btn-primary">
             <Plus className="w-4 h-4" /> New Client
           </Link>
         }

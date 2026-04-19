@@ -80,7 +80,7 @@ export default function NewOrderPage() {
         title="New Order"
         subtitle="Capture a new service request"
         actions={
-          <Link href="/dashboard/orders" className="btn-ghost">
+          <Link href="/orders" className="btn-ghost">
             <ArrowLeft className="w-4 h-4" /> Back
           </Link>
         }
@@ -182,7 +182,7 @@ export default function NewOrderPage() {
             </div>
 
             <div className="flex justify-end gap-3 pt-2">
-              <Link href="/dashboard/orders" className="btn-secondary">Cancel</Link>
+              <Link href="/orders" className="btn-secondary">Cancel</Link>
               <button type="submit" disabled={loading} className="btn-primary">
                 {loading && <Loader2 className="w-4 h-4 animate-spin" />}
                 Create Order

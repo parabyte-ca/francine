@@ -15,12 +15,12 @@ import {
 } from "lucide-react";
 
 const NAV_ITEMS = [
-  { href: "/dashboard",                label: "Dashboard",    icon: LayoutDashboard },
-  { href: "/dashboard/orders",         label: "Orders",       icon: ClipboardList },
-  { href: "/dashboard/customers",      label: "Customers",    icon: Users },
-  { href: "/dashboard/scheduling",     label: "Scheduling",   icon: CalendarDays },
-  { href: "/dashboard/invoices",       label: "Invoices",     icon: FileText },
-  { href: "/dashboard/payments",       label: "Payments",     icon: CreditCard },
+  { href: "/dashboard",   label: "Dashboard",  icon: LayoutDashboard },
+  { href: "/orders",      label: "Orders",     icon: ClipboardList },
+  { href: "/customers",   label: "Customers",  icon: Users },
+  { href: "/scheduling",  label: "Scheduling", icon: CalendarDays },
+  { href: "/invoices",    label: "Invoices",   icon: FileText },
+  { href: "/payments",    label: "Payments",   icon: CreditCard },
 ];
 
 export default function Sidebar() {
@@ -60,7 +60,7 @@ export default function Sidebar() {
       {/* Bottom: settings */}
       <div className="px-3 py-4 border-t">
         <Link
-          href="/dashboard/settings"
+          href="/setup"
           className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition-colors"
         >
           <Settings className="w-4 h-4 text-gray-400" />

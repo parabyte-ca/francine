@@ -50,7 +50,7 @@ async function DashboardContent() {
           <AlertCircle className="w-5 h-5 flex-shrink-0" />
           <p className="text-sm">
             <strong>{overdue.length} invoice{overdue.length > 1 ? "s are" : " is"} overdue.</strong>
-            {" "}<Link href="/dashboard/payments?status=overdue" className="underline">View overdue invoices</Link>
+            {" "}<Link href="/payments?status=overdue" className="underline">View overdue invoices</Link>
           </p>
         </div>
       )}
@@ -80,7 +80,7 @@ async function DashboardContent() {
               <CalendarDays className="w-4 h-4 text-brand-600" />
               Today&apos;s Appointments
             </h2>
-            <Link href="/dashboard/scheduling" className="text-xs text-brand-600 hover:underline">View all</Link>
+            <Link href="/scheduling" className="text-xs text-brand-600 hover:underline">View all</Link>
           </div>
           {todayAppts.length === 0 ? (
             <p className="text-sm text-gray-400 py-6 text-center">No appointments today</p>
@@ -110,7 +110,7 @@ async function DashboardContent() {
               <ClipboardList className="w-4 h-4 text-brand-600" />
               Recent Orders
             </h2>
-            <Link href="/dashboard/orders" className="text-xs text-brand-600 hover:underline">View all</Link>
+            <Link href="/orders" className="text-xs text-brand-600 hover:underline">View all</Link>
           </div>
           {orders.length === 0 ? (
             <p className="text-sm text-gray-400 py-6 text-center">No orders yet</p>
