@@ -1,6 +1,6 @@
 # Francine CRM
 
-**Version 0.8.3**
+**Version 0.8.4**
 
 A lightweight, Google Workspace-backed CRM for SMB service operations. Francine replaces heavy platforms like Jobber with a purpose-built Next.js front-end that uses Google Sheets as its database, Google Calendar for scheduling, Google Drive for invoice storage, and Gmail for transactional email — with no third-party SaaS subscription required.
 
@@ -330,6 +330,12 @@ Every line item records its `rate_source` (`standard`, `custom`, or `manual_over
 ---
 
 ## Changelog
+
+### v0.8.4 — Sheets range fix
+
+- `lib/google/sheets.ts`: changed `readSheet` range from `${tabName}!A2:ZZ` to `${tabName}!A2:Z` — `ZZ` is not a valid A1 notation column; `Z` (26 columns) is sufficient for all 7 sheet tabs (widest is Invoices at 19 columns, A–S)
+
+---
 
 ### v0.8.3 — Production domain configuration
 

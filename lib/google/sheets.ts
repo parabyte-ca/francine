@@ -81,7 +81,7 @@ async function readSheet<T>(tabName: string, headers: string[]): Promise<T[]> {
   const sheets = getSheetsClient();
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SHEET_ID(),
-    range: `${tabName}!A2:ZZ`, // skip header row
+    range: `${tabName}!A2:Z`, // skip header row; Z covers all 7 sheets (max 19 cols)
   });
   const rows = res.data.values ?? [];
   return rows
