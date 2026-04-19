@@ -13,11 +13,13 @@ const PatchOrderSchema = z.object({
   service_type:     z.string().optional(),
   description:      z.string().optional(),
   scheduled_date:   z.string().optional(),
-  duration_minutes: z.number().int().positive().optional(),
+  duration_hours:   z.coerce.number().positive().optional(),
   location:         z.string().optional(),
   assigned_to:      z.string().optional(),
   calendar_event_id: z.string().optional(),
   quote_amount:     z.number().nonnegative().optional(),
+  mileage_cost:     z.coerce.number().nonnegative().optional(),
+  parking_cost:     z.coerce.number().nonnegative().optional(),
   notes:            z.string().optional(),
 });
 

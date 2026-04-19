@@ -41,11 +41,10 @@ const LineItemInputSchema = z.object({
 });
 
 const CreateInvoiceSchema = z.object({
-  order_id:    z.string().uuid(),
-  due_days:    z.number().int().nonnegative().default(30),
-  tax_rate:    z.number().nonnegative().optional(),  // overrides env default
-  notes:       z.string().default(""),
-  line_items:  z.array(LineItemInputSchema).min(1),
+  order_id:   z.string().uuid(),
+  due_days:   z.number().int().nonnegative().default(30),
+  notes:      z.string().default(""),
+  line_items: z.array(LineItemInputSchema).min(1),
 });
 
 export async function GET(req: NextRequest) {
@@ -72,7 +71,7 @@ export async function POST(req: NextRequest) {
   }
 
   const { order_id, due_days, notes, line_items } = parsed.data;
-  const taxRate = parsed.data.tax_rate ?? Number(process.env.TAX_RATE_PERCENT ?? 0);
+  const HST_RATE_PCT = Number(process.env.TAX_RATE_PERCENT ?? 13);
 
   // Fetch order and client
   const order = await getOrder(order_id);
@@ -81,7 +80,7 @@ export async function POST(req: NextRequest) {
   if (!client) return NextResponse.json({ error: "Client not found" }, { status: 404 });
 
   // Apply tax exemption
-  const effectiveTaxRate = client.default_tax_exempt ? 0 : taxRate;
+  const effectiveTaxRate = client.default_tax_exempt ? 0 : HST_RATE_PCT;
 
   // ── Resolve prices via Pricing Engine ─────────────────────────────────────
   const resolvedItems = await Promise.all(
@@ -109,6 +108,36 @@ export async function POST(req: NextRequest) {
       return lineItem;
     })
   );
+
+  // ── Auto-add mileage / parking as flat line items ─────────────────────────
+  if (order.mileage_cost > 0) {
+    resolvedItems.push({
+      line_item_id: uuidv4(),
+      invoice_id:   "",
+      service_type: "Mileage",
+      description:  "Mileage reimbursement",
+      quantity:     1,
+      unit:         "flat",
+      unit_price:   order.mileage_cost,
+      total_price:  order.mileage_cost,
+      rate_source:  "manual_override",
+      notes:        "",
+    });
+  }
+  if (order.parking_cost > 0) {
+    resolvedItems.push({
+      line_item_id: uuidv4(),
+      invoice_id:   "",
+      service_type: "Parking",
+      description:  "Parking",
+      quantity:     1,
+      unit:         "flat",
+      unit_price:   order.parking_cost,
+      total_price:  order.parking_cost,
+      rate_source:  "manual_override",
+      notes:        "",
+    });
+  }
 
   // ── Calculate invoice totals ───────────────────────────────────────────────
   const { subtotal, tax_amount, total } = calculateInvoiceTotals(

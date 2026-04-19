@@ -4,7 +4,7 @@ import { useState } from "react";
 import Topbar from "@/components/Topbar";
 import {
   Loader2, Settings as SettingsIcon, CheckCircle2, AlertCircle,
-  RefreshCw, Trash2, UserPlus, FlaskConical,
+  RefreshCw, Trash2, UserPlus, FlaskConical, FileDown, BarChart3,
 } from "lucide-react";
 import pkg from "@/package.json";
 
@@ -22,6 +22,11 @@ export default function SetupPage() {
   const [eraseResult, setEraseResult] = useState<string | null>(null);
   const [seeding, setSeeding] = useState(false);
   const [seedToast, setSeedToast] = useState<string | null>(null);
+
+  // Tax report state
+  const currentYear = new Date().getFullYear();
+  const [taxFrom, setTaxFrom] = useState(`${currentYear}-01-01`);
+  const [taxTo, setTaxTo] = useState(`${currentYear}-12-31`);
 
   const runSetup = async () => {
     setLoading(true);
@@ -153,7 +158,7 @@ export default function SetupPage() {
               <li>GOOGLE_CALENDAR_ID — calendar for appointment scheduling</li>
               <li>GOOGLE_CLIENT_EMAIL / GOOGLE_PRIVATE_KEY — service account credentials</li>
               <li>AUTH_URL — public HTTPS URL (needed for calendar push webhooks)</li>
-              <li>TAX_RATE_PERCENT — default tax rate applied to new invoices</li>
+              <li>TAX_RATE_PERCENT — Ontario HST rate applied to invoices (default: 13%)</li>
             </ul>
           </div>
 
@@ -167,6 +172,51 @@ export default function SetupPage() {
               <li><a href="/invoices" className="text-brand-600 hover:underline">Invoices</a></li>
               <li><a href="/api/health" className="text-brand-600 hover:underline" target="_blank" rel="noopener noreferrer">Health check</a></li>
             </ul>
+          </div>
+
+          {/* ── Tax Report ──────────────────────────────────────────────────── */}
+          <div className="card">
+            <div className="flex items-start gap-3 mb-4">
+              <div className="p-2.5 rounded-lg bg-brand-50 text-brand-700 flex-shrink-0">
+                <BarChart3 className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="font-semibold text-gray-900">Year-End Tax Report</h2>
+                <p className="text-sm text-gray-600 mt-0.5">
+                  Export a CSV summary of income and HST collected for Ontario tax filing.
+                  Excludes draft and void invoices.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-end gap-4">
+              <div>
+                <label className="label">From</label>
+                <input
+                  type="date"
+                  value={taxFrom}
+                  onChange={(e) => setTaxFrom(e.target.value)}
+                  className="input"
+                />
+              </div>
+              <div>
+                <label className="label">To</label>
+                <input
+                  type="date"
+                  value={taxTo}
+                  onChange={(e) => setTaxTo(e.target.value)}
+                  className="input"
+                />
+              </div>
+              <a
+                href={`/api/reports/tax?from=${taxFrom}&to=${taxTo}&format=csv`}
+                download
+                className="btn-primary no-underline"
+              >
+                <FileDown className="w-4 h-4" />
+                Download CSV
+              </a>
+            </div>
           </div>
 
           {/* ── Developer Tools ─────────────────────────────────────────────── */}

@@ -75,7 +75,7 @@ export default async function InvoiceDetailPage({ params }: { params: { id: stri
               <p className="text-gray-900">{invoice.due_date}</p>
             </div>
             <div>
-              <p className="text-xs text-gray-500">Tax Rate</p>
+              <p className="text-xs text-gray-500">HST</p>
               <p className="text-gray-900">{invoice.tax_rate}%</p>
             </div>
             <div>
@@ -121,7 +121,7 @@ export default async function InvoiceDetailPage({ params }: { params: { id: stri
                     <td className="pt-4 text-right">${invoice.subtotal.toFixed(2)}</td>
                   </tr>
                   <tr className="text-sm">
-                    <td colSpan={4} className="py-1 pr-4 text-right text-gray-500">Tax ({invoice.tax_rate}%)</td>
+                    <td colSpan={4} className="py-1 pr-4 text-right text-gray-500">HST ({invoice.tax_rate}%)</td>
                     <td className="py-1 text-right">${invoice.tax_amount.toFixed(2)}</td>
                   </tr>
                   <tr className="text-sm font-semibold">
