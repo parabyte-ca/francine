@@ -1,6 +1,6 @@
 # Francine CRM
 
-**Version 0.9.1**
+**Version 0.9.2**
 
 A lightweight, Google Workspace-backed CRM for SMB service operations. Francine replaces heavy platforms like Jobber with a purpose-built Next.js front-end that uses Google Sheets as its database, Google Calendar for scheduling, Google Drive for invoice storage, and Gmail for transactional email — with no third-party SaaS subscription required.
 
@@ -330,6 +330,22 @@ Every line item records its `rate_source` (`standard`, `custom`, or `manual_over
 ---
 
 ## Changelog
+
+### v0.9.2 — Setup error fix, discrete address fields, version display, dev tools
+
+- `app/api/setup/route.ts`: wrapped all three setup steps in a `try/catch` — unhandled throws previously caused Next.js to return an HTML 500 page, making the client's `res.json()` call throw "Unexpected end of JSON input"; now returns `{ error, results }` with HTTP 500 on failure
+- `types/index.ts`, `lib/google/sheets.ts` (CLIENT_HEADERS), `app/api/customers/route.ts`, `app/api/customers/[id]/route.ts`: replaced single `address: string` field with four discrete fields — `street`, `city`, `province`, `postal_code`; Sheets column count: 12 → 15
+- `app/(dashboard)/customers/new/page.tsx`, `app/(dashboard)/customers/[id]/edit/EditClientForm.tsx`: forms updated to use 4 address fields (street full-width, then city/province/postal in a 3-column grid)
+- `app/(dashboard)/customers/[id]/page.tsx`: Customer 360 address display now joins the four fields with commas
+- `package.json`: corrected `version` from stale `0.1.0` to `0.9.2`
+- `app/(dashboard)/setup/page.tsx`: displays `v{pkg.version}` in the topbar subtitle and Environment card; added Developer Tools section (amber-bordered card):
+  - **Add Fake Client** button — calls `POST /api/dev/seed-customer` to generate a realistic Ontario-based Canadian client (random name, company from a list of 20 real Canadian companies, random Ontario city + postal code); shows toast with generated name
+  - **Erase All Data** button — opens a confirmation modal with a destructive-action checkbox before calling `POST /api/dev/reset`
+- `app/api/dev/reset/route.ts` (new): auth-gated; clears data rows (`A2:Z10000`) from all 7 data tabs (Clients, Orders, Standard_Rates, Custom_Rates, Appointments, Invoices, Invoice_Line_Items); leaves Config intact; returns `{ cleared: string[] }`
+- `app/api/dev/seed-customer/route.ts` (new): auth-gated; generates and writes one fake Canadian client using hardcoded name/company/Ontario city lists + random postal code generation; returns `{ data: client }`
+- `lib/google/sheets.ts`: added exported `clearAllData()` helper used by the reset route
+
+---
 
 ### v0.9.1 — Beta: flesh out missing pages, fix all broken links, mobile-responsive navigation
 

@@ -72,7 +72,12 @@ export default async function CustomerDetailPage({ params }: { params: { id: str
               <div className="flex flex-wrap gap-4 mt-3 text-sm text-gray-600">
                 <span>{client.email}</span>
                 {client.phone && <span>{client.phone}</span>}
-                {client.address && <span>{client.address}</span>}
+                {(client.street || client.city) && (
+                  <span>
+                    {[client.street, client.city, client.province, client.postal_code]
+                      .filter(Boolean).join(", ")}
+                  </span>
+                )}
                 {client.language_pair && <span className="badge-blue">{client.language_pair}</span>}
               </div>
               {client.notes && <p className="mt-3 text-sm text-gray-500 italic">{client.notes}</p>}

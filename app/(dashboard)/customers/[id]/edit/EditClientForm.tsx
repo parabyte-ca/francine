@@ -13,7 +13,10 @@ const schema = z.object({
   name:               z.string().min(1, "Name is required"),
   email:              z.string().email("Valid email required"),
   phone:              z.string().default(""),
-  address:            z.string().default(""),
+  street:             z.string().default(""),
+  city:               z.string().default(""),
+  province:           z.string().default(""),
+  postal_code:        z.string().default(""),
   company:            z.string().default(""),
   language_pair:      z.string().default(""),
   default_tax_exempt: z.boolean().default(false),
@@ -36,7 +39,10 @@ export default function EditClientForm({ client }: { client: Client }) {
       name:               client.name,
       email:              client.email,
       phone:              client.phone,
-      address:            client.address,
+      street:             client.street,
+      city:               client.city,
+      province:           client.province,
+      postal_code:        client.postal_code,
       company:            client.company,
       language_pair:      client.language_pair ?? "",
       default_tax_exempt: client.default_tax_exempt,
@@ -100,8 +106,23 @@ export default function EditClientForm({ client }: { client: Client }) {
       </div>
 
       <div>
-        <label className="label">Address</label>
-        <input type="text" {...register("address")} className="input" />
+        <label className="label">Street</label>
+        <input type="text" {...register("street")} className="input" placeholder="123 Main St" />
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="sm:col-span-1">
+          <label className="label">City</label>
+          <input type="text" {...register("city")} className="input" />
+        </div>
+        <div>
+          <label className="label">Province</label>
+          <input type="text" {...register("province")} className="input" placeholder="ON" maxLength={2} />
+        </div>
+        <div>
+          <label className="label">Postal Code</label>
+          <input type="text" {...register("postal_code")} className="input" placeholder="A1A 1A1" />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

@@ -47,7 +47,10 @@ export interface Client {
   name: string;
   email: string;
   phone: string;
-  address: string;
+  street:      string;
+  city:        string;
+  province:    string;
+  postal_code: string;
   company: string;
   language_pair?: string;     // e.g. "EN-FR" — Interpreter Intelligence specific
   has_custom_rates: boolean;  // flag: at least one Custom_Rate row exists
