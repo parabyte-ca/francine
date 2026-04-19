@@ -43,7 +43,7 @@ export default async function CustomerDetailPage({ params }: { params: { id: str
         title={client.name}
         subtitle="Customer 360 View"
         actions={
-          <Link href="/dashboard/customers" className="btn-ghost">
+          <Link href="/customers" className="btn-ghost">
             <ArrowLeft className="w-4 h-4" /> Back
           </Link>
         }

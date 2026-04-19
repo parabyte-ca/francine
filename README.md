@@ -1,6 +1,6 @@
 # Francine CRM
 
-**Version 0.8.9**
+**Version 0.9.0**
 
 A lightweight, Google Workspace-backed CRM for SMB service operations. Francine replaces heavy platforms like Jobber with a purpose-built Next.js front-end that uses Google Sheets as its database, Google Calendar for scheduling, Google Drive for invoice storage, and Gmail for transactional email — with no third-party SaaS subscription required.
 
@@ -330,6 +330,17 @@ Every line item records its `rate_source` (`standard`, `custom`, or `manual_over
 ---
 
 ## Changelog
+
+### v0.9.0 — Fix 404s on all dashboard pages: correct internal link paths
+
+- `components/Sidebar.tsx`: removed `/dashboard/` prefix from all nav links — Next.js route groups (`(dashboard)`) are invisible to the URL, so `/dashboard/orders` → `/orders`, `/dashboard/customers` → `/customers`, etc.; also updated the Settings footer link from the non-existent `/dashboard/settings` to `/setup`
+- `app/(dashboard)/orders/page.tsx`: fixed links to `/orders/new`
+- `app/(dashboard)/orders/new/page.tsx`: fixed back/cancel links to `/orders`
+- `app/(dashboard)/customers/page.tsx`: fixed new-customer links (pointed to non-existent `/customers/new`, now `/customers` until that page is built)
+- `app/(dashboard)/customers/[id]/page.tsx`: fixed back link to `/customers`
+- `app/(dashboard)/dashboard/page.tsx`: fixed all "View all" and cross-page links
+
+---
 
 ### v0.8.9 — Graceful empty state before setup is run
 

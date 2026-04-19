@@ -40,7 +40,7 @@ async function OrdersTable({ status }: { status?: string }) {
             <tr>
               <td colSpan={6} className="py-12 text-center text-gray-400">
                 No orders found.{" "}
-                <Link href="/dashboard/orders/new" className="text-brand-600 hover:underline">
+                <Link href="/orders/new" className="text-brand-600 hover:underline">
                   Create the first one
                 </Link>
               </td>
@@ -91,7 +91,7 @@ export default function OrdersPage({
         title="Orders"
         subtitle="Manage your service pipeline"
         actions={
-          <Link href="/dashboard/orders/new" className="btn-primary">
+          <Link href="/orders/new" className="btn-primary">
             <Plus className="w-4 h-4" /> New Order
           </Link>
         }
