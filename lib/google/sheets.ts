@@ -79,10 +79,19 @@ function objectToRow(headers: string[], obj: Record<string, unknown>): string[] 
 /** Read all rows from a named tab, returning typed objects */
 async function readSheet<T>(tabName: string, headers: string[]): Promise<T[]> {
   const sheets = getSheetsClient();
-  const res = await sheets.spreadsheets.values.get({
-    spreadsheetId: SHEET_ID(),
-    range: `${tabName}!A2:Z10000`, // skip header row; Z covers all sheets (max 19 cols)
-  });
+  let res;
+  try {
+    res = await sheets.spreadsheets.values.get({
+      spreadsheetId: SHEET_ID(),
+      range: `${tabName}!A2:Z10000`, // skip header row; Z covers all sheets (max 19 cols)
+    });
+  } catch (err: unknown) {
+    // "Unable to parse range" means the tab doesn't exist yet (setup not run).
+    // Return empty rather than crashing so the UI shows an empty state.
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes("Unable to parse range")) return [];
+    throw err;
+  }
   const rows = res.data.values ?? [];
   return rows
     .filter((r) => r[0]) // skip completely empty rows

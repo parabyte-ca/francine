@@ -1,6 +1,6 @@
 # Francine CRM
 
-**Version 0.8.8**
+**Version 0.8.9**
 
 A lightweight, Google Workspace-backed CRM for SMB service operations. Francine replaces heavy platforms like Jobber with a purpose-built Next.js front-end that uses Google Sheets as its database, Google Calendar for scheduling, Google Drive for invoice storage, and Gmail for transactional email — with no third-party SaaS subscription required.
 
@@ -330,6 +330,12 @@ Every line item records its `rate_source` (`standard`, `custom`, or `manual_over
 ---
 
 ## Changelog
+
+### v0.8.9 — Graceful empty state before setup is run
+
+- `lib/google/sheets.ts` `readSheet`: catches "Unable to parse range" errors (which the Sheets API returns when a tab doesn't exist) and returns `[]` instead of crashing — the app now shows an empty state on all pages if `POST /api/setup` hasn't been called yet, rather than throwing a 400 error
+
+---
 
 ### v0.8.8 — Fix Sheets API 400: replace open-ended ranges with bounded ranges
 
