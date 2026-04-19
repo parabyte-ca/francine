@@ -153,9 +153,10 @@ async function updateRow(
 // ---------------------------------------------------------------------------
 
 const CLIENT_HEADERS: (keyof Client)[] = [
-  "client_id", "name", "email", "phone", "address", "company",
-  "language_pair", "has_custom_rates", "default_tax_exempt", "notes",
-  "created_at", "updated_at",
+  "client_id", "name", "email", "phone",
+  "street", "city", "province", "postal_code",
+  "company", "language_pair", "has_custom_rates", "default_tax_exempt",
+  "notes", "created_at", "updated_at",
 ];
 
 const ORDER_HEADERS: (keyof Order)[] = [
@@ -465,4 +466,28 @@ export async function initializeSheetHeaders(): Promise<void> {
       data: tabs.map((t) => ({ range: `${t.name}!A1`, values: [t.headers] })),
     },
   });
+}
+
+// ---------------------------------------------------------------------------
+// Dev utility: wipe all data rows (keeps headers and Config)
+// ---------------------------------------------------------------------------
+export async function clearAllData(): Promise<string[]> {
+  const sheets = getSheetsClient();
+  const sheetId = SHEET_ID();
+
+  const DATA_TABS = [
+    "Clients", "Orders", "Standard_Rates", "Custom_Rates",
+    "Appointments", "Invoices", "Invoice_Line_Items",
+  ];
+
+  await Promise.all(
+    DATA_TABS.map((tab) =>
+      sheets.spreadsheets.values.clear({
+        spreadsheetId: sheetId,
+        range: `${tab}!A2:Z10000`,
+      }).catch(() => {})
+    )
+  );
+
+  return DATA_TABS;
 }

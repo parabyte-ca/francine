@@ -28,32 +28,40 @@ export async function POST() {
 
   const results: Record<string, string> = {};
 
-  // ── 1. Sheets ──────────────────────────────────────────────────────────────
-  await initializeSheetHeaders();
-  results.sheets = "ok";
+  try {
+    // ── 1. Sheets ──────────────────────────────────────────────────────────────
+    await initializeSheetHeaders();
+    results.sheets = "ok";
 
-  // ── 2. Drive folder ────────────────────────────────────────────────────────
-  const envFolderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
-  const storedFolderId = await getConfig("GOOGLE_DRIVE_FOLDER_ID");
+    // ── 2. Drive folder ──────────────────────────────────────────────────────
+    const envFolderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
+    const storedFolderId = await getConfig("GOOGLE_DRIVE_FOLDER_ID");
 
-  if (envFolderId || storedFolderId) {
-    results.drive_folder = "already configured";
-  } else {
-    const folderId = await createDriveFolder("Francine Invoices");
-    await setConfig("GOOGLE_DRIVE_FOLDER_ID", folderId);
-    results.drive_folder = "created";
-    results.drive_folder_id = folderId;
-    results.drive_folder_note =
-      "Add GOOGLE_DRIVE_FOLDER_ID=" + folderId + " to .env.local for faster startup.";
-  }
+    if (envFolderId || storedFolderId) {
+      results.drive_folder = "already configured";
+    } else {
+      const folderId = await createDriveFolder("Francine Invoices");
+      await setConfig("GOOGLE_DRIVE_FOLDER_ID", folderId);
+      results.drive_folder = "created";
+      results.drive_folder_id = folderId;
+      results.drive_folder_note =
+        "Add GOOGLE_DRIVE_FOLDER_ID=" + folderId + " to .env.local for faster startup.";
+    }
 
-  // ── 3. Calendar watch ──────────────────────────────────────────────────────
-  const authUrl = process.env.AUTH_URL ?? "";
-  if (!authUrl.startsWith("https://")) {
-    results.calendar_watch = "skipped — AUTH_URL must be https:// for push notifications";
-  } else {
-    await renewCalendarWatchIfNeeded();
-    results.calendar_watch = "ok";
+    // ── 3. Calendar watch ────────────────────────────────────────────────────
+    const authUrl = process.env.AUTH_URL ?? "";
+    if (!authUrl.startsWith("https://")) {
+      results.calendar_watch = "skipped — AUTH_URL must be https:// for push notifications";
+    } else {
+      await renewCalendarWatchIfNeeded();
+      results.calendar_watch = "ok";
+    }
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    return NextResponse.json(
+      { error: message, results },
+      { status: 500 }
+    );
   }
 
   return NextResponse.json({ message: "Setup complete", results });
