@@ -12,7 +12,7 @@ import { ArrowLeft, User, Clock, MapPin, FileText, CalendarDays } from "lucide-r
 import OrderActions from "./OrderActions";
 import type { Metadata } from "next";
 
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
   const order = await getOrder(params.id);

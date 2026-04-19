@@ -26,7 +26,7 @@ import {
   getClient,
   updateOrder,
 } from "@/lib/google/sheets";
-import { resolvePrice, calculateInvoiceTotals } from "@/lib/pricing-engine";
+import { resolvePrice, calculateInvoiceTotals, PricingError } from "@/lib/pricing-engine";
 import { generateInvoicePdf } from "@/lib/pdf-generator";
 import { uploadInvoicePdf } from "@/lib/google/drive";
 import type { Invoice, InvoiceLineItem } from "@/types";
@@ -82,128 +82,137 @@ export async function POST(req: NextRequest) {
   // Apply tax exemption
   const effectiveTaxRate = client.default_tax_exempt ? 0 : HST_RATE_PCT;
 
-  // ── Resolve prices via Pricing Engine ─────────────────────────────────────
-  const resolvedItems = await Promise.all(
-    line_items.map(async (item) => {
-      const priceResult = await resolvePrice({
-        client_id:             order.client_id,
-        service_type:          item.service_type,
-        quantity:              item.quantity,
-        unit:                  item.unit,
-        manual_override_price: item.manual_override_price,
-      });
+  try {
+    // ── Resolve prices via Pricing Engine ───────────────────────────────────
+    const resolvedItems = await Promise.all(
+      line_items.map(async (item) => {
+        const priceResult = await resolvePrice({
+          client_id:             order.client_id,
+          service_type:          item.service_type,
+          quantity:              item.quantity,
+          unit:                  item.unit,
+          manual_override_price: item.manual_override_price,
+        });
 
-      const lineItem: InvoiceLineItem = {
+        const lineItem: InvoiceLineItem = {
+          line_item_id: uuidv4(),
+          invoice_id:   "",
+          service_type: item.service_type,
+          description:  item.description || item.service_type,
+          quantity:     item.quantity,
+          unit:         priceResult.unit,
+          unit_price:   priceResult.unit_price,
+          total_price:  priceResult.total_price,
+          rate_source:  priceResult.rate_source,
+          notes:        item.notes,
+        };
+        return lineItem;
+      })
+    );
+
+    // ── Auto-add mileage / parking as flat line items ──────────────────────
+    if (order.mileage_cost > 0) {
+      resolvedItems.push({
         line_item_id: uuidv4(),
-        invoice_id:   "", // set after invoice_id is known
-        service_type: item.service_type,
-        description:  item.description || item.service_type,
-        quantity:     item.quantity,
-        unit:         priceResult.unit,
-        unit_price:   priceResult.unit_price,
-        total_price:  priceResult.total_price,
-        rate_source:  priceResult.rate_source,
-        notes:        item.notes,
-      };
-      return lineItem;
-    })
-  );
+        invoice_id:   "",
+        service_type: "Mileage",
+        description:  "Mileage reimbursement",
+        quantity:     1,
+        unit:         "flat",
+        unit_price:   order.mileage_cost,
+        total_price:  order.mileage_cost,
+        rate_source:  "manual_override",
+        notes:        "",
+      });
+    }
+    if (order.parking_cost > 0) {
+      resolvedItems.push({
+        line_item_id: uuidv4(),
+        invoice_id:   "",
+        service_type: "Parking",
+        description:  "Parking",
+        quantity:     1,
+        unit:         "flat",
+        unit_price:   order.parking_cost,
+        total_price:  order.parking_cost,
+        rate_source:  "manual_override",
+        notes:        "",
+      });
+    }
 
-  // ── Auto-add mileage / parking as flat line items ─────────────────────────
-  if (order.mileage_cost > 0) {
-    resolvedItems.push({
-      line_item_id: uuidv4(),
-      invoice_id:   "",
-      service_type: "Mileage",
-      description:  "Mileage reimbursement",
-      quantity:     1,
-      unit:         "flat",
-      unit_price:   order.mileage_cost,
-      total_price:  order.mileage_cost,
-      rate_source:  "manual_override",
-      notes:        "",
+    // ── Calculate invoice totals ─────────────────────────────────────────────
+    const { subtotal, tax_amount, total } = calculateInvoiceTotals(
+      resolvedItems.map((i) => i.total_price),
+      effectiveTaxRate
+    );
+
+    // ── Build invoice record ─────────────────────────────────────────────────
+    const invoiceId     = uuidv4();
+    const invoiceNumber = await nextInvoiceNumber(client.abbreviation || "");
+    const now           = new Date();
+    const issueDate     = now.toISOString().split("T")[0];
+    const dueDate       = new Date(now.getTime() + due_days * 86_400_000)
+      .toISOString().split("T")[0];
+
+    const invoice: Invoice = {
+      invoice_id:       invoiceId,
+      invoice_number:   invoiceNumber,
+      order_id,
+      client_id:        order.client_id,
+      status:           "draft",
+      issue_date:       issueDate,
+      due_date:         dueDate,
+      subtotal,
+      tax_rate:         effectiveTaxRate,
+      tax_amount,
+      total,
+      drive_file_id:    "",
+      drive_file_url:   "",
+      paid_at:          "",
+      payment_method:   "",
+      payment_reference: "",
+      notes,
+      created_at:       now.toISOString(),
+      updated_at:       now.toISOString(),
+    };
+
+    // Set invoice_id on line items
+    resolvedItems.forEach((item) => { item.invoice_id = invoiceId; });
+
+    // ── Generate PDF ─────────────────────────────────────────────────────────
+    const pdfBuffer = await generateInvoicePdf({
+      invoice,
+      lineItems: resolvedItems,
+      client,
     });
-  }
-  if (order.parking_cost > 0) {
-    resolvedItems.push({
-      line_item_id: uuidv4(),
-      invoice_id:   "",
-      service_type: "Parking",
-      description:  "Parking",
-      quantity:     1,
-      unit:         "flat",
-      unit_price:   order.parking_cost,
-      total_price:  order.parking_cost,
-      rate_source:  "manual_override",
-      notes:        "",
+
+    // ── Upload to Drive ──────────────────────────────────────────────────────
+    const { fileId, fileUrl } = await uploadInvoicePdf({
+      filename:  `${invoiceNumber}.pdf`,
+      pdfBuffer,
     });
+    invoice.drive_file_id  = fileId;
+    invoice.drive_file_url = fileUrl;
+
+    // ── Persist to Sheets ────────────────────────────────────────────────────
+    await createInvoice(invoice);
+    await Promise.all(resolvedItems.map((item) => appendLineItem(item)));
+
+    // ── Advance order to completed ───────────────────────────────────────────
+    if (order.status === "in_progress" || order.status === "scheduled") {
+      await updateOrder(order_id, { status: "completed" });
+    }
+
+    return NextResponse.json(
+      { data: { invoice, line_items: resolvedItems } },
+      { status: 201 }
+    );
+  } catch (err) {
+    if (err instanceof PricingError) {
+      return NextResponse.json({ error: err.message }, { status: 422 });
+    }
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("Invoice generation failed:", msg);
+    return NextResponse.json({ error: `Invoice generation failed: ${msg}` }, { status: 500 });
   }
-
-  // ── Calculate invoice totals ───────────────────────────────────────────────
-  const { subtotal, tax_amount, total } = calculateInvoiceTotals(
-    resolvedItems.map((i) => i.total_price),
-    effectiveTaxRate
-  );
-
-  // ── Build invoice record ───────────────────────────────────────────────────
-  const invoiceId     = uuidv4();
-  const invoiceNumber = await nextInvoiceNumber(client.abbreviation || "");
-  const now           = new Date();
-  const issueDate     = now.toISOString().split("T")[0];
-  const dueDate       = new Date(now.getTime() + due_days * 86_400_000)
-    .toISOString().split("T")[0];
-
-  const invoice: Invoice = {
-    invoice_id:       invoiceId,
-    invoice_number:   invoiceNumber,
-    order_id,
-    client_id:        order.client_id,
-    status:           "draft",
-    issue_date:       issueDate,
-    due_date:         dueDate,
-    subtotal,
-    tax_rate:         effectiveTaxRate,
-    tax_amount,
-    total,
-    drive_file_id:    "",
-    drive_file_url:   "",
-    paid_at:          "",
-    payment_method:   "",
-    payment_reference: "",
-    notes,
-    created_at:       now.toISOString(),
-    updated_at:       now.toISOString(),
-  };
-
-  // Set invoice_id on line items
-  resolvedItems.forEach((item) => { item.invoice_id = invoiceId; });
-
-  // ── Generate PDF ───────────────────────────────────────────────────────────
-  const pdfBuffer = await generateInvoicePdf({
-    invoice,
-    lineItems: resolvedItems,
-    client,
-  });
-
-  // ── Upload to Drive ────────────────────────────────────────────────────────
-  const { fileId, fileUrl } = await uploadInvoicePdf({
-    filename:  `${invoiceNumber}.pdf`,
-    pdfBuffer,
-  });
-  invoice.drive_file_id  = fileId;
-  invoice.drive_file_url = fileUrl;
-
-  // ── Persist to Sheets ──────────────────────────────────────────────────────
-  await createInvoice(invoice);
-  await Promise.all(resolvedItems.map((item) => appendLineItem(item)));
-
-  // ── Advance order to completed ─────────────────────────────────────────────
-  if (order.status === "in_progress" || order.status === "scheduled") {
-    await updateOrder(order_id, { status: "completed" });
-  }
-
-  return NextResponse.json(
-    { data: { invoice, line_items: resolvedItems } },
-    { status: 201 }
-  );
 }
