@@ -51,13 +51,14 @@ export default function InvoiceActions({ invoiceId, status }: Props) {
           send_receipt: form.send_receipt,
         }),
       });
-      const json = await res.json();
+      let json: Record<string, unknown> = {};
+      try { json = await res.json(); } catch { /* non-JSON */ }
       if (res.ok) {
-        setToast("Payment recorded");
+        setToast(typeof json.email_warning === "string" ? `Payment recorded. ⚠️ ${json.email_warning}` : "Payment recorded");
         setPayModal(false);
         router.refresh();
       } else {
-        setToast(typeof json.error === "string" ? json.error : "Payment failed");
+        setToast(typeof json.error === "string" ? json.error : `Payment failed (HTTP ${res.status})`);
       }
     } finally {
       setPaying(false);

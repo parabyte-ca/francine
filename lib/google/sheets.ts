@@ -121,13 +121,13 @@ async function updateRow(
   // Find the row index
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SHEET_ID(),
-    range: `${tabName}!A:A`,
+    range: `${tabName}!A2:A10000`, // skip header; column[0] = Sheets row 2
   });
   const column = res.data.values ?? [];
   const rowIndex = column.findIndex((r) => r[0] === pkValue);
   if (rowIndex === -1) throw new Error(`Row not found: ${pkValue} in ${tabName}`);
 
-  // Row index in Sheets is 1-based; +1 for header, +1 for 1-based = rowIndex + 2
+  // column[0] = Sheets row 2, column[n] = Sheets row n+2
   const sheetRow = rowIndex + 2;
 
   // Read the existing row to merge updates
