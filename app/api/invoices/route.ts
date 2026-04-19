@@ -179,20 +179,22 @@ export async function POST(req: NextRequest) {
     // Set invoice_id on line items
     resolvedItems.forEach((item) => { item.invoice_id = invoiceId; });
 
-    // ── Generate PDF ─────────────────────────────────────────────────────────
-    const pdfBuffer = await generateInvoicePdf({
-      invoice,
-      lineItems: resolvedItems,
-      client,
-    });
-
-    // ── Upload to Drive ──────────────────────────────────────────────────────
-    const { fileId, fileUrl } = await uploadInvoicePdf({
-      filename:  `${invoiceNumber}.pdf`,
-      pdfBuffer,
-    });
-    invoice.drive_file_id  = fileId;
-    invoice.drive_file_url = fileUrl;
+    // ── Generate PDF & upload to Drive (non-fatal) ───────────────────────────
+    try {
+      const pdfBuffer = await generateInvoicePdf({
+        invoice,
+        lineItems: resolvedItems,
+        client,
+      });
+      const { fileId, fileUrl } = await uploadInvoicePdf({
+        filename:  `${invoiceNumber}.pdf`,
+        pdfBuffer,
+      });
+      invoice.drive_file_id  = fileId;
+      invoice.drive_file_url = fileUrl;
+    } catch (pdfErr) {
+      console.error("PDF/Drive upload failed (invoice will be saved without PDF):", pdfErr);
+    }
 
     // ── Persist to Sheets ────────────────────────────────────────────────────
     await createInvoice(invoice);
