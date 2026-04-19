@@ -12,6 +12,7 @@
 
 import { google, calendar_v3 } from "googleapis";
 import { getServiceAccountAuth } from "./auth";
+import { getConfig, setConfig } from "./sheets";
 import type { AvailabilitySlot } from "@/types";
 
 // ---------------------------------------------------------------------------
@@ -229,4 +230,58 @@ export async function registerCalendarWatch(webhookUrl: string): Promise<{
     resourceId: res.data.resourceId!,
     expiration: res.data.expiration!,
   };
+}
+
+/** Stop an active watch channel (called before registering a replacement). */
+export async function stopCalendarWatch(
+  channelId: string,
+  resourceId: string
+): Promise<void> {
+  const calendar = getCalendarClient();
+  await calendar.channels.stop({
+    requestBody: { id: channelId, resourceId },
+  });
+}
+
+/**
+ * Checks the stored watch expiration and renews the watch if it will expire
+ * within 24 hours. Safe to call on every server startup and from the webhook
+ * handler — skips silently when not needed or when setup hasn't been run.
+ *
+ * Requires AUTH_URL to be an https:// URL (Google only accepts public HTTPS
+ * endpoints for push notifications).
+ */
+export async function renewCalendarWatchIfNeeded(): Promise<void> {
+  const authUrl = process.env.AUTH_URL ?? "";
+  if (!authUrl.startsWith("https://")) return; // local dev or misconfigured — skip
+  if (!process.env.GOOGLE_SHEET_ID) return;     // setup not run yet — skip
+
+  const webhookUrl = `${authUrl}/api/webhooks/calendar`;
+  const renewWindow = 24 * 60 * 60 * 1000; // renew when < 24 h remain
+
+  const [expirationStr, channelId, resourceId] = await Promise.all([
+    getConfig("CALENDAR_WATCH_EXPIRATION"),
+    getConfig("CALENDAR_WATCH_CHANNEL_ID"),
+    getConfig("CALENDAR_WATCH_RESOURCE_ID"),
+  ]);
+
+  if (expirationStr && channelId && resourceId) {
+    const expiration = Number(expirationStr);
+    if (expiration - Date.now() > renewWindow) return; // still valid
+
+    // Attempt to stop the old channel (may already be expired — ignore errors)
+    try {
+      await stopCalendarWatch(channelId, resourceId);
+    } catch {
+      // expired or already stopped
+    }
+  }
+
+  // Register a fresh watch and persist the new state
+  const watch = await registerCalendarWatch(webhookUrl);
+  await Promise.all([
+    setConfig("CALENDAR_WATCH_CHANNEL_ID", watch.channelId),
+    setConfig("CALENDAR_WATCH_RESOURCE_ID", watch.resourceId),
+    setConfig("CALENDAR_WATCH_EXPIRATION", watch.expiration),
+  ]);
 }

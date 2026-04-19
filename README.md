@@ -1,6 +1,6 @@
 # Francine CRM
 
-**Version 0.8.5**
+**Version 0.8.6**
 
 A lightweight, Google Workspace-backed CRM for SMB service operations. Francine replaces heavy platforms like Jobber with a purpose-built Next.js front-end that uses Google Sheets as its database, Google Calendar for scheduling, Google Drive for invoice storage, and Gmail for transactional email — with no third-party SaaS subscription required.
 
@@ -330,6 +330,17 @@ Every line item records its `rate_source` (`standard`, `custom`, or `manual_over
 ---
 
 ## Changelog
+
+### v0.8.6 — Automated Drive folder creation and Calendar watch renewal
+
+- `lib/google/sheets.ts`: added `Config` sheet tab (key/value store); added `getConfig`/`setConfig` helpers; `initializeSheetHeaders` now creates and headers the Config tab alongside the other 7
+- `lib/google/drive.ts`: replaced sync `FOLDER_ID()` with async `getFolderId()` that falls back to the Config sheet; added `createDriveFolder()` — called once by setup if `GOOGLE_DRIVE_FOLDER_ID` is not set; the new folder ID is stored in Config and returned in the setup response
+- `lib/google/calendar.ts`: added `stopCalendarWatch()`; added `renewCalendarWatchIfNeeded()` — checks Config for stored watch expiration and renews the channel (stop + re-register) when fewer than 24 hours remain; skips silently in local/non-HTTPS environments
+- `app/api/setup/route.ts`: `POST /api/setup` now orchestrates all three steps — sheet tabs, Drive folder, Calendar watch — and reports per-step results in the response body
+- `instrumentation.ts`: new Next.js server startup hook; calls `renewCalendarWatchIfNeeded()` on every process boot so the watch self-heals without any manual intervention
+- `next.config.js`: enabled `experimental.instrumentationHook`
+
+---
 
 ### v0.8.5 — Automatic sheet tab creation on setup
 
