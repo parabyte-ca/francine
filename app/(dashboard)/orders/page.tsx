@@ -65,7 +65,7 @@ async function OrdersTable({ status }: { status?: string }) {
                 <td className="py-3 pr-4 text-gray-500">{order.assigned_to || "—"}</td>
                 <td className="py-3 pr-4"><StatusBadge status={order.status} /></td>
                 <td className="py-3">
-                  <Link href={`/dashboard/orders/${order.order_id}`} className="text-brand-600 hover:underline text-xs">
+                  <Link href={`/orders/${order.order_id}`} className="text-brand-600 hover:underline text-xs">
                     View
                   </Link>
                 </td>
@@ -102,7 +102,7 @@ export default function OrdersPage({
           {statuses.map((s) => (
             <Link
               key={s}
-              href={s === "all" ? "/dashboard/orders" : `/dashboard/orders?status=${s}`}
+              href={s === "all" ? "/orders" : `/orders?status=${s}`}
               className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors capitalize ${
                 (searchParams.status === s) || (!searchParams.status && s === "all")
                   ? "bg-white text-gray-900 shadow-sm"

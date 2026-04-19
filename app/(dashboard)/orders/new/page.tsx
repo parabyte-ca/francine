@@ -68,7 +68,7 @@ export default function NewOrderPage() {
         return;
       }
       const json = await res.json();
-      router.push(`/dashboard/orders/${json.data.order_id}`);
+      router.push(`/orders/${json.data.order_id}`);
     } finally {
       setLoading(false);
     }
@@ -81,7 +81,7 @@ export default function NewOrderPage() {
         subtitle="Capture a new service request"
         actions={
           <Link href="/orders" className="btn-ghost">
-            <ArrowLeft className="w-4 h-4" /> Back
+            <ArrowLeft className="w-4 h-4" /><span className="hidden sm:inline">Back</span>
           </Link>
         }
       />

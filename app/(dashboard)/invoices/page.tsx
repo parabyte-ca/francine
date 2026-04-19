@@ -50,7 +50,7 @@ async function InvoicesTable({ status }: { status?: string }) {
                 <td className="py-3 pr-4 font-mono text-xs font-medium text-gray-800">{inv.invoice_number}</td>
                 <td className="py-3 pr-4">
                   {client ? (
-                    <Link href={`/dashboard/customers/${client.client_id}`} className="hover:underline">
+                    <Link href={`/customers/${client.client_id}`} className="hover:underline">
                       {client.name}
                     </Link>
                   ) : "—"}
@@ -70,7 +70,7 @@ async function InvoicesTable({ status }: { status?: string }) {
                         <ExternalLink className="w-3 h-3" /> PDF
                       </a>
                     )}
-                    <Link href={`/dashboard/invoices/${inv.invoice_id}`} className="text-brand-600 hover:underline text-xs">
+                    <Link href={`/invoices/${inv.invoice_id}`} className="text-brand-600 hover:underline text-xs">
                       View
                     </Link>
                   </div>
@@ -95,7 +95,7 @@ export default function InvoicesPage({ searchParams }: { searchParams: { status?
           {statuses.map((s) => (
             <Link
               key={s}
-              href={s === "all" ? "/dashboard/invoices" : `/dashboard/invoices?status=${s}`}
+              href={s === "all" ? "/invoices" : `/invoices?status=${s}`}
               className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors capitalize ${
                 (searchParams.status === s) || (!searchParams.status && s === "all")
                   ? "bg-white text-gray-900 shadow-sm"

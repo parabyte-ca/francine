@@ -1,6 +1,6 @@
 # Francine CRM
 
-**Version 0.9.0**
+**Version 0.9.1**
 
 A lightweight, Google Workspace-backed CRM for SMB service operations. Francine replaces heavy platforms like Jobber with a purpose-built Next.js front-end that uses Google Sheets as its database, Google Calendar for scheduling, Google Drive for invoice storage, and Gmail for transactional email — with no third-party SaaS subscription required.
 
@@ -330,6 +330,30 @@ Every line item records its `rate_source` (`standard`, `custom`, or `manual_over
 ---
 
 ## Changelog
+
+### v0.9.1 — Beta: flesh out missing pages, fix all broken links, mobile-responsive navigation
+
+**New pages (close the loop on every navigation link)**
+- `app/(dashboard)/orders/[id]/page.tsx` + `OrderActions.tsx`: order detail view showing client, status, description, appointments, and related invoices; inline status selector patches via `PATCH /api/orders/[id]`; "Generate Invoice" modal lets staff add line items (service + qty + optional override price) and calls `POST /api/invoices`
+- `app/(dashboard)/customers/new/page.tsx`: standard react-hook-form + Zod intake form for creating a client via `POST /api/customers`; redirects to the new Customer 360 view on success
+- `app/(dashboard)/customers/[id]/edit/page.tsx` + `EditClientForm.tsx`: server-rendered prefilled form for updating a client via `PATCH /api/customers/[id]`
+- `app/(dashboard)/customers/[id]/rates/page.tsx` + `RatesManager.tsx`: manages per-client custom rate overrides; shows the full standard rate card with override status and lets staff add overrides via `POST /api/rates`
+- `app/(dashboard)/invoices/[id]/page.tsx` + `InvoiceActions.tsx`: invoice detail view with full line-item table, totals, payment info, Drive PDF link, and action buttons — send/resend via Gmail (`POST /api/invoices/[id]/send`), mark paid (`POST /api/payments`)
+- `app/(dashboard)/setup/page.tsx`: Settings screen with a "Run Setup" button that invokes `POST /api/setup` and surfaces the per-step results; documents expected env vars and links to health check
+
+**Mobile-responsive navigation**
+- `components/Sidebar.tsx`: complete rewrite — mobile gets a fixed top bar with a hamburger button that opens an off-canvas drawer (with backdrop + auto-close on route change); desktop (`md:`) keeps the original static 240px sidebar; same nav items, no layout shift on resize
+- `app/(dashboard)/layout.tsx`: added `pt-14 md:pt-0` to the main content column so the fixed mobile top bar does not overlap the page Topbar
+
+**Remaining broken-link fixes**
+- `app/(dashboard)/orders/new/page.tsx` (line 71): router.push target `/dashboard/orders/...` → `/orders/...`
+- `app/(dashboard)/customers/[id]/page.tsx` (lines 80, 126, 135, 146): edit / rates / new-order / view-order links
+- `app/(dashboard)/invoices/page.tsx` (lines 53, 73, 98): customer link, view-invoice link, status filter tabs
+- `app/(dashboard)/orders/page.tsx` (lines 68, 105): view-order link, status filter tabs
+- `app/(dashboard)/customers/page.tsx` (lines 19, 31, 71): empty-state link, customer card, new-client button — now all point to `/customers/new` and `/customers/[id]` instead of the invisible `/dashboard/...` aliases
+- `app/(dashboard)/dashboard/page.tsx` (lines 39–42, 122): stat cards + recent orders list
+
+---
 
 ### v0.9.0 — Fix 404s on all dashboard pages: correct internal link paths
 

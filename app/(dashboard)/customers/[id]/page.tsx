@@ -77,7 +77,7 @@ export default async function CustomerDetailPage({ params }: { params: { id: str
               </div>
               {client.notes && <p className="mt-3 text-sm text-gray-500 italic">{client.notes}</p>}
             </div>
-            <Link href={`/dashboard/customers/${params.id}/edit`} className="btn-secondary flex-shrink-0">
+            <Link href={`/customers/${params.id}/edit`} className="btn-secondary flex-shrink-0">
               Edit
             </Link>
           </div>
@@ -123,7 +123,7 @@ export default async function CustomerDetailPage({ params }: { params: { id: str
                 );
               })}
             </div>
-            <Link href={`/dashboard/customers/${params.id}/rates`} className="btn-secondary w-full justify-center mt-4 text-xs">
+            <Link href={`/customers/${params.id}/rates`} className="btn-secondary w-full justify-center mt-4 text-xs">
               Manage Custom Rates
             </Link>
           </div>
@@ -132,7 +132,7 @@ export default async function CustomerDetailPage({ params }: { params: { id: str
           <div className="card">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-gray-900">Service History</h3>
-              <Link href={`/dashboard/orders/new?client_id=${params.id}`} className="btn-primary text-xs py-1.5">
+              <Link href={`/orders/new?client_id=${params.id}`} className="btn-primary text-xs py-1.5">
                 + New Order
               </Link>
             </div>
@@ -143,7 +143,7 @@ export default async function CustomerDetailPage({ params }: { params: { id: str
                 orders.slice(0, 8).map((order) => (
                   <Link
                     key={order.order_id}
-                    href={`/dashboard/orders/${order.order_id}`}
+                    href={`/orders/${order.order_id}`}
                     className="flex items-center justify-between py-2 border-b last:border-0 hover:bg-gray-50 -mx-2 px-2 rounded transition-colors"
                   >
                     <div>
