@@ -84,28 +84,58 @@ export async function POST(req: NextRequest) {
 
   const paidAt = new Date().toISOString();
 
-  await updateInvoice(invoice_id, {
-    status:            "paid",
-    paid_at:           paidAt,
-    payment_method,
-    payment_reference,
-  });
+  try {
+    await updateInvoice(invoice_id, {
+      status:            "paid",
+      paid_at:           paidAt,
+      payment_method,
+      payment_reference,
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    const isNotFound = msg.includes("Row not found");
+    return NextResponse.json(
+      {
+        error: isNotFound
+          ? `Invoice not found in Google Sheets. Your sheet may be out of sync — go to Settings and run Setup to re-initialize the sheet structure.`
+          : `Could not write to Google Sheets: ${msg}. Check your GOOGLE_SHEET_ID and service account credentials in Settings.`,
+      },
+      { status: isNotFound ? 404 : 500 }
+    );
+  }
 
+  // Verify the write actually took effect
+  const updated = await getInvoice(invoice_id).catch(() => null);
+  if (updated && updated.status !== "paid") {
+    return NextResponse.json(
+      { error: "Payment was submitted but the invoice status did not update in Google Sheets. Check server logs." },
+      { status: 500 }
+    );
+  }
+
+  let email_warning: string | undefined;
   if (send_receipt) {
     const client = await getClient(invoice.client_id);
     if (client) {
-      sendPaymentReceiptEmail({
-        to:            client.email,
-        clientName:    client.name,
-        invoiceNumber: invoice.invoice_number,
-        amountPaid:    invoice.total,
-        paidAt:        new Date(paidAt).toLocaleDateString("en-CA"),
-      }).catch((err) => console.error("Receipt email failed:", err));
+      try {
+        await sendPaymentReceiptEmail({
+          to:            client.email,
+          clientName:    client.name,
+          invoiceNumber: invoice.invoice_number,
+          amountPaid:    invoice.total,
+          paidAt:        new Date(paidAt).toLocaleDateString("en-CA"),
+        });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error("Receipt email failed:", msg);
+        email_warning = `Receipt email failed — check Gmail credentials in Settings. (${msg})`;
+      }
     }
   }
 
   return NextResponse.json({
     message: `Invoice ${invoice.invoice_number} marked as paid`,
     paid_at: paidAt,
+    ...(email_warning ? { email_warning } : {}),
   });
 }
