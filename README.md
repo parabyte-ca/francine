@@ -1,6 +1,6 @@
 # Francine CRM
 
-**Version 0.8.6**
+**Version 0.8.7**
 
 A lightweight, Google Workspace-backed CRM for SMB service operations. Francine replaces heavy platforms like Jobber with a purpose-built Next.js front-end that uses Google Sheets as its database, Google Calendar for scheduling, Google Drive for invoice storage, and Gmail for transactional email — with no third-party SaaS subscription required.
 
@@ -330,6 +330,12 @@ Every line item records its `rate_source` (`standard`, `custom`, or `manual_over
 ---
 
 ## Changelog
+
+### v0.8.7 — Fix build failure: googleapis webpack externals for instrumentation.ts
+
+- `next.config.js`: added a `webpack()` function that marks `googleapis`, `google-auth-library`, `gaxios`, `agent-base`, and `https-proxy-agent` as CommonJS externals for all server-side bundles — `serverComponentsExternalPackages` covers RSC/route-handler bundles but not the separate webpack compilation used for `instrumentation.ts`, causing `Can't resolve 'http'/'https'/'net'` errors during `next build`
+
+---
 
 ### v0.8.6 — Automated Drive folder creation and Calendar watch renewal
 
