@@ -36,10 +36,10 @@ async function DashboardContent() {
     .reduce((s, i) => s + i.total, 0);
 
   const stats = [
-    { label: "Active Orders",    value: activeOrders.length,              icon: ClipboardList, href: "/dashboard/orders",   color: "text-blue-600 bg-blue-50" },
-    { label: "Total Clients",    value: clients.length,                   icon: Users,         href: "/dashboard/customers", color: "text-purple-600 bg-purple-50" },
-    { label: "Outstanding",      value: `$${totalOutstanding.toFixed(0)}`, icon: DollarSign,   href: "/dashboard/payments",  color: "text-orange-600 bg-orange-50" },
-    { label: "Paid YTD",         value: `$${paidYtd.toFixed(0)}`,         icon: TrendingUp,   href: "/dashboard/payments",  color: "text-green-600 bg-green-50" },
+    { label: "Active Orders",    value: activeOrders.length,              icon: ClipboardList, href: "/orders",    color: "text-blue-600 bg-blue-50" },
+    { label: "Total Clients",    value: clients.length,                   icon: Users,         href: "/customers", color: "text-purple-600 bg-purple-50" },
+    { label: "Outstanding",      value: `$${totalOutstanding.toFixed(0)}`, icon: DollarSign,   href: "/payments",  color: "text-orange-600 bg-orange-50" },
+    { label: "Paid YTD",         value: `$${paidYtd.toFixed(0)}`,         icon: TrendingUp,   href: "/payments",  color: "text-green-600 bg-green-50" },
   ];
 
   return (
@@ -119,7 +119,7 @@ async function DashboardContent() {
               {orders.slice(0, 5).map((o) => (
                 <Link
                   key={o.order_id}
-                  href={`/dashboard/orders/${o.order_id}`}
+                  href={`/orders/${o.order_id}`}
                   className="flex items-center justify-between py-2 border-b last:border-0 hover:bg-gray-50 -mx-2 px-2 rounded transition-colors"
                 >
                   <div>
