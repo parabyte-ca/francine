@@ -67,7 +67,7 @@ export default async function OrderDetailPage({ params }: { params: { id: string
               <div>
                 <p className="text-xs text-gray-500">Requested</p>
                 <p className="text-gray-900">{order.requested_date?.split("T")[0] || "—"}</p>
-                <p className="text-xs text-gray-500 mt-1">Duration: {order.duration_minutes || 60} min</p>
+                <p className="text-xs text-gray-500 mt-1">Duration: {order.duration_hours ?? 1} hr</p>
               </div>
             </div>
             <div className="flex items-start gap-2">
@@ -90,6 +90,17 @@ export default async function OrderDetailPage({ params }: { params: { id: string
             <div className="mt-4 pt-4 border-t">
               <p className="text-xs text-gray-500 mb-1">Description</p>
               <p className="text-sm text-gray-800 whitespace-pre-wrap">{order.description}</p>
+            </div>
+          )}
+
+          {(order.mileage_cost > 0 || order.parking_cost > 0) && (
+            <div className="mt-4 pt-4 border-t flex items-center gap-6 text-sm">
+              {order.mileage_cost > 0 && (
+                <span className="text-gray-700">Mileage: <span className="font-medium">${order.mileage_cost.toFixed(2)}</span></span>
+              )}
+              {order.parking_cost > 0 && (
+                <span className="text-gray-700">Parking: <span className="font-medium">${order.parking_cost.toFixed(2)}</span></span>
+              )}
             </div>
           )}
 

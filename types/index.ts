@@ -72,11 +72,13 @@ export interface Order {
   status: OrderStatus;
   requested_date: string;     // ISO-8601 date requested by client
   scheduled_date: string;     // ISO-8601 confirmed date
-  duration_minutes: number;
+  duration_hours: number;
   location: string;
   assigned_to: string;        // staff name or email
   calendar_event_id: string;  // Google Calendar event ID (set after scheduling)
   quote_amount: number;
+  mileage_cost: number;
+  parking_cost: number;
   notes: string;
   created_at: string;
   updated_at: string;

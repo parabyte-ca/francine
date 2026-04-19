@@ -29,18 +29,17 @@ echo "==> Restarting container (zero-downtime swap)..."
 docker compose -f "$COMPOSE_FILE" up -d --force-recreate --remove-orphans
 
 echo "==> Waiting for health check..."
-for i in $(seq 1 12); do
-  STATUS=$(docker inspect --format='{{.State.Health.Status}}' francine 2>/dev/null || echo "starting")
-  if [[ "$STATUS" == "healthy" ]]; then
+for i in $(seq 1 18); do
+  if wget -qO- http://localhost:3002/api/health >/dev/null 2>&1; then
     echo "==> Container is healthy."
     break
   fi
-  if [[ "$i" -eq 12 ]]; then
-    echo "ERROR: Container did not become healthy within 60 s." >&2
+  if [[ "$i" -eq 18 ]]; then
+    echo "ERROR: Container did not become healthy within 90 s." >&2
     echo "       Check logs with: docker compose logs --tail=50 francine" >&2
     exit 1
   fi
-  echo "    ($i/12) status: $STATUS — retrying in 5 s..."
+  echo "    ($i/18) not ready — retrying in 5 s..."
   sleep 5
 done
 

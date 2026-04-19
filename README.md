@@ -1,6 +1,6 @@
 # Francine CRM
 
-**Version 0.9.2**
+**Version 0.9.3**
 
 A lightweight, Google Workspace-backed CRM for SMB service operations. Francine replaces heavy platforms like Jobber with a purpose-built Next.js front-end that uses Google Sheets as its database, Google Calendar for scheduling, Google Drive for invoice storage, and Gmail for transactional email — with no third-party SaaS subscription required.
 
@@ -330,6 +330,20 @@ Every line item records its `rate_source` (`standard`, `custom`, or `manual_over
 ---
 
 ## Changelog
+
+### v0.9.3 — Health check fix, client combobox, hours, mileage/parking, HST, tax report
+
+- `update.sh`: replaced `docker inspect` health poll (was missing Docker's 60 s probe window) with direct `wget` HTTP poll to `localhost:3002/api/health`; increased timeout to 90 s (18 × 5 s)
+- `docker-compose.yml`: healthcheck `interval` 30 s → 10 s, `start_period` 20 s → 40 s
+- `types/index.ts`, `lib/google/sheets.ts` (ORDER_HEADERS), `app/api/orders/route.ts`, `app/api/orders/[id]/route.ts`: renamed `duration_minutes` → `duration_hours` (now float, e.g. 1.5); added `mileage_cost` and `parking_cost` fields to Order (17 cols)
+- `app/(dashboard)/orders/new/page.tsx`: client combobox now loads all clients on mount and filters locally — clicking the field shows all clients immediately without needing to type; duration input uses 0.25 h step; added Expenses section (Mileage $, Parking $)
+- `app/(dashboard)/orders/[id]/page.tsx`: duration displays as hours; mileage/parking shown inline when > 0
+- `app/api/invoices/route.ts`: HST defaults to `TAX_RATE_PERCENT` env var (default 13 if unset); removed caller-settable `tax_rate` from schema; auto-generates "Mileage" and "Parking" flat line items from order when respective costs are > 0
+- `app/(dashboard)/invoices/[id]/page.tsx`: tax label updated to `HST (N%)`
+- `app/api/reports/tax/route.ts` (new): `GET /api/reports/tax?from=&to=&format=csv|json` — streams a CSV (or JSON) tax summary covering: total invoices, subtotal, HST collected, total billed, paid vs outstanding; monthly breakdown; per-invoice detail with client names
+- `app/(dashboard)/setup/page.tsx`: added Tax Report card with date-range pickers and "Download CSV" button; `TAX_RATE_PERCENT` described as Ontario HST default in Environment list
+
+---
 
 ### v0.9.2 — Setup error fix, discrete address fields, version display, dev tools
 

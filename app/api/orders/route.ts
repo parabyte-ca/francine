@@ -11,14 +11,16 @@ import { createOrder, listOrders } from "@/lib/google/sheets";
 import type { Order } from "@/types";
 
 const CreateOrderSchema = z.object({
-  client_id:       z.string().uuid(),
-  service_type:    z.string().min(1),
-  description:     z.string().default(""),
-  requested_date:  z.string().datetime({ offset: true }).or(z.string().date()),
-  duration_minutes: z.number().int().positive().default(60),
-  location:        z.string().default(""),
-  assigned_to:     z.string().default(""),
-  notes:           z.string().default(""),
+  client_id:      z.string().uuid(),
+  service_type:   z.string().min(1),
+  description:    z.string().default(""),
+  requested_date: z.string().datetime({ offset: true }).or(z.string().date()),
+  duration_hours: z.coerce.number().positive().default(1),
+  location:       z.string().default(""),
+  assigned_to:    z.string().default(""),
+  mileage_cost:   z.coerce.number().nonnegative().default(0),
+  parking_cost:   z.coerce.number().nonnegative().default(0),
+  notes:          z.string().default(""),
 });
 
 export async function GET(req: NextRequest) {

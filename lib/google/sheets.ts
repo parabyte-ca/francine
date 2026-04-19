@@ -161,8 +161,9 @@ const CLIENT_HEADERS: (keyof Client)[] = [
 
 const ORDER_HEADERS: (keyof Order)[] = [
   "order_id", "client_id", "service_type", "description", "status",
-  "requested_date", "scheduled_date", "duration_minutes", "location",
-  "assigned_to", "calendar_event_id", "quote_amount", "notes",
+  "requested_date", "scheduled_date", "duration_hours", "location",
+  "assigned_to", "calendar_event_id", "quote_amount",
+  "mileage_cost", "parking_cost", "notes",
   "created_at", "updated_at",
 ];
 
