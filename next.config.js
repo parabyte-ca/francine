@@ -5,6 +5,7 @@ const nextConfig = {
   output: "standalone",
   experimental: {
     serverComponentsExternalPackages: ["googleapis", "pdf-lib"],
+    instrumentationHook: true,
   },
   images: {
     domains: ["lh3.googleusercontent.com"],

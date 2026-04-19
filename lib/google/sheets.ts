@@ -124,7 +124,7 @@ async function updateRow(
   // Read the existing row to merge updates
   const existingRes = await sheets.spreadsheets.values.get({
     spreadsheetId: SHEET_ID(),
-    range: `${tabName}!A${sheetRow}:ZZ${sheetRow}`,
+    range: `${tabName}!A${sheetRow}:Z${sheetRow}`,
   });
   const existing = (existingRes.data.values?.[0] ?? []).map(String);
   const existingObj = rowToObject<Record<string, unknown>>(headers, existing);
@@ -361,6 +361,57 @@ export async function nextInvoiceNumber(): Promise<string> {
 }
 
 // ---------------------------------------------------------------------------
+// Utility: Config key/value store (persists Drive folder ID, watch state, etc.)
+// ---------------------------------------------------------------------------
+
+/** Read a config value by key. Returns null if the key or the tab doesn't exist. */
+export async function getConfig(key: string): Promise<string | null> {
+  try {
+    const sheets = getSheetsClient();
+    const res = await sheets.spreadsheets.values.get({
+      spreadsheetId: SHEET_ID(),
+      range: "Config!A2:B",
+    });
+    const row = (res.data.values ?? []).find((r) => r[0] === key);
+    return row ? String(row[1] ?? "") : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Write a config value. Appends if the key is new, updates in-place otherwise. */
+export async function setConfig(key: string, value: string): Promise<void> {
+  const sheets = getSheetsClient();
+  const sheetId = SHEET_ID();
+  const now = new Date().toISOString();
+
+  // Locate the key in the data rows (A2:A skips the header)
+  const colRes = await sheets.spreadsheets.values.get({
+    spreadsheetId: sheetId,
+    range: "Config!A2:A",
+  });
+  const keys = (colRes.data.values ?? []).map((r) => r[0] as string);
+  const dataIdx = keys.findIndex((k) => k === key);
+
+  if (dataIdx === -1) {
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: sheetId,
+      range: "Config!A1",
+      valueInputOption: "RAW",
+      requestBody: { values: [[key, value, now]] },
+    });
+  } else {
+    const sheetRow = dataIdx + 2; // +1 for 1-based, +1 for header row
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: sheetId,
+      range: `Config!A${sheetRow}:C${sheetRow}`,
+      valueInputOption: "RAW",
+      requestBody: { values: [[key, value, now]] },
+    });
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Utility: initialize sheet headers (run once during setup)
 // ---------------------------------------------------------------------------
 export async function initializeSheetHeaders(): Promise<void> {
@@ -368,25 +419,41 @@ export async function initializeSheetHeaders(): Promise<void> {
   const sheetId = SHEET_ID();
 
   const tabs = [
-    { name: "Clients", headers: CLIENT_HEADERS },
-    { name: "Orders", headers: ORDER_HEADERS },
-    { name: "Standard_Rates", headers: STANDARD_RATE_HEADERS },
-    { name: "Custom_Rates", headers: CUSTOM_RATE_HEADERS },
-    { name: "Appointments", headers: APPOINTMENT_HEADERS },
-    { name: "Invoices", headers: INVOICE_HEADERS },
+    { name: "Clients",            headers: CLIENT_HEADERS },
+    { name: "Orders",             headers: ORDER_HEADERS },
+    { name: "Standard_Rates",     headers: STANDARD_RATE_HEADERS },
+    { name: "Custom_Rates",       headers: CUSTOM_RATE_HEADERS },
+    { name: "Appointments",       headers: APPOINTMENT_HEADERS },
+    { name: "Invoices",           headers: INVOICE_HEADERS },
     { name: "Invoice_Line_Items", headers: LINE_ITEM_HEADERS },
+    { name: "Config",             headers: ["key", "value", "updated_at"] },
   ];
 
-  const requests = tabs.map((tab) => ({
-    range: `${tab.name}!A1`,
-    values: [tab.headers],
-  }));
+  // Discover which tabs already exist
+  const meta = await sheets.spreadsheets.get({ spreadsheetId: sheetId });
+  const existingTitles = new Set(
+    (meta.data.sheets ?? []).map((s) => s.properties?.title ?? "")
+  );
 
+  // Create any missing tabs
+  const missingTabs = tabs.filter((t) => !existingTitles.has(t.name));
+  if (missingTabs.length > 0) {
+    await sheets.spreadsheets.batchUpdate({
+      spreadsheetId: sheetId,
+      requestBody: {
+        requests: missingTabs.map((t) => ({
+          addSheet: { properties: { title: t.name } },
+        })),
+      },
+    });
+  }
+
+  // Write header rows to all tabs
   await sheets.spreadsheets.values.batchUpdate({
     spreadsheetId: sheetId,
     requestBody: {
       valueInputOption: "RAW",
-      data: requests,
+      data: tabs.map((t) => ({ range: `${t.name}!A1`, values: [t.headers] })),
     },
   });
 }

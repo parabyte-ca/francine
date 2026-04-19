@@ -8,6 +8,7 @@
 import { google, drive_v3 } from "googleapis";
 import { Readable } from "stream";
 import { getServiceAccountAuth } from "./auth";
+import { getConfig } from "./sheets";
 
 // ---------------------------------------------------------------------------
 // Client
@@ -18,11 +19,14 @@ function getDriveClient(): drive_v3.Drive {
   return google.drive({ version: "v3", auth });
 }
 
-const FOLDER_ID = () => {
-  const id = process.env.GOOGLE_DRIVE_FOLDER_ID;
-  if (!id) throw new Error("GOOGLE_DRIVE_FOLDER_ID is not set");
-  return id;
-};
+async function getFolderId(): Promise<string> {
+  if (process.env.GOOGLE_DRIVE_FOLDER_ID) return process.env.GOOGLE_DRIVE_FOLDER_ID;
+  const stored = await getConfig("GOOGLE_DRIVE_FOLDER_ID");
+  if (stored) return stored;
+  throw new Error(
+    "GOOGLE_DRIVE_FOLDER_ID is not configured. Run POST /api/setup to create the folder automatically."
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Upload
@@ -37,6 +41,7 @@ export async function uploadInvoicePdf(params: {
   pdfBuffer: Buffer;
 }): Promise<{ fileId: string; fileUrl: string }> {
   const drive = getDriveClient();
+  const folderId = await getFolderId();
 
   // Convert Buffer → Readable stream (required by the Drive API)
   const stream = Readable.from(params.pdfBuffer);
@@ -45,7 +50,7 @@ export async function uploadInvoicePdf(params: {
     requestBody: {
       name: params.filename,
       mimeType: "application/pdf",
-      parents: [FOLDER_ID()],
+      parents: [folderId],
     },
     media: {
       mimeType: "application/pdf",
@@ -105,9 +110,10 @@ export async function listInvoiceFiles(): Promise<
   Array<{ id: string; name: string; createdTime: string; webViewLink: string }>
 > {
   const drive = getDriveClient();
+  const folderId = await getFolderId();
 
   const res = await drive.files.list({
-    q: `'${FOLDER_ID()}' in parents and mimeType='application/pdf' and trashed=false`,
+    q: `'${folderId}' in parents and mimeType='application/pdf' and trashed=false`,
     fields: "files(id, name, createdTime, webViewLink)",
     orderBy: "createdTime desc",
   });
@@ -118,4 +124,24 @@ export async function listInvoiceFiles(): Promise<
     createdTime: f.createdTime!,
     webViewLink: f.webViewLink!,
   }));
+}
+
+// ---------------------------------------------------------------------------
+// Setup
+// ---------------------------------------------------------------------------
+
+/**
+ * Creates a Drive folder owned by the service account and returns its ID.
+ * Called once by POST /api/setup when GOOGLE_DRIVE_FOLDER_ID is not configured.
+ */
+export async function createDriveFolder(name: string): Promise<string> {
+  const drive = getDriveClient();
+  const res = await drive.files.create({
+    requestBody: {
+      name,
+      mimeType: "application/vnd.google-apps.folder",
+    },
+    fields: "id",
+  });
+  return res.data.id!;
 }
