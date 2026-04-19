@@ -81,7 +81,7 @@ async function readSheet<T>(tabName: string, headers: string[]): Promise<T[]> {
   const sheets = getSheetsClient();
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SHEET_ID(),
-    range: `${tabName}!A2:Z`, // skip header row; Z covers all 7 sheets (max 19 cols)
+    range: `${tabName}!A2:Z10000`, // skip header row; Z covers all sheets (max 19 cols)
   });
   const rows = res.data.values ?? [];
   return rows
@@ -370,7 +370,7 @@ export async function getConfig(key: string): Promise<string | null> {
     const sheets = getSheetsClient();
     const res = await sheets.spreadsheets.values.get({
       spreadsheetId: SHEET_ID(),
-      range: "Config!A2:B",
+      range: "Config!A2:B1000",
     });
     const row = (res.data.values ?? []).find((r) => r[0] === key);
     return row ? String(row[1] ?? "") : null;
@@ -388,7 +388,7 @@ export async function setConfig(key: string, value: string): Promise<void> {
   // Locate the key in the data rows (A2:A skips the header)
   const colRes = await sheets.spreadsheets.values.get({
     spreadsheetId: sheetId,
-    range: "Config!A2:A",
+    range: "Config!A2:A1000",
   });
   const keys = (colRes.data.values ?? []).map((r) => r[0] as string);
   const dataIdx = keys.findIndex((k) => k === key);
