@@ -155,7 +155,7 @@ export default function SetupPage() {
             <ul className="mt-3 space-y-1 text-xs text-gray-700 font-mono">
               <li>GOOGLE_SHEET_ID — spreadsheet used as the database</li>
               <li>GOOGLE_DRIVE_FOLDER_ID — invoice PDF folder (auto-created on setup if missing)</li>
-              <li>GOOGLE_CALENDAR_ID — calendar for appointment scheduling</li>
+              <li>GOOGLE_CALENDAR_ID — your Google Calendar ID for appointment scheduling (usually your Gmail address, e.g. you@gmail.com). The service account email must be granted &quot;Make changes to events&quot; access on that calendar first. Defaults to the service account&apos;s own calendar (invisible to you) if not set.</li>
               <li>GOOGLE_CLIENT_EMAIL / GOOGLE_PRIVATE_KEY — service account credentials</li>
               <li>AUTH_URL — public HTTPS URL (needed for calendar push webhooks)</li>
               <li>TAX_RATE_PERCENT — Ontario HST rate applied to invoices (default: 13%)</li>
