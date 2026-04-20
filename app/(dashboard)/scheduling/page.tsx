@@ -44,7 +44,7 @@ export default function SchedulingPage() {
   // Booking modal
   const [bookModal, setBookModal] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<{ start: Date; end: Date } | null>(null);
-  const [bookForm, setBookForm] = useState({ order_id: "", location: "", virtual: false, notes: "" });
+  const [bookForm, setBookForm] = useState({ order_id: "", location: "", meeting_link: "", notes: "" });
   const [bookLoading, setBookLoading] = useState(false);
   const [bookError, setBookError] = useState<string | null>(null);
 
@@ -115,7 +115,7 @@ export default function SchedulingPage() {
 
   const handleSelectSlot = ({ start, end }: { start: Date; end: Date }) => {
     setSelectedSlot({ start, end });
-    setBookForm({ order_id: "", location: "", virtual: false, notes: "" });
+    setBookForm({ order_id: "", location: "", meeting_link: "", notes: "" });
     setBookError(null);
     setBookModal(true);
   };
@@ -141,13 +141,13 @@ export default function SchedulingPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          order_id: bookForm.order_id,
-          client_id: order.client_id,
-          start_time: selectedSlot.start.toISOString(),
-          end_time: selectedSlot.end.toISOString(),
-          location: bookForm.location,
-          virtual: bookForm.virtual,
-          notes: bookForm.notes,
+          order_id:     bookForm.order_id,
+          client_id:    order.client_id,
+          start_time:   selectedSlot.start.toISOString(),
+          end_time:     selectedSlot.end.toISOString(),
+          location:     bookForm.location,
+          meeting_link: bookForm.meeting_link,
+          notes:        bookForm.notes,
         }),
       });
       let json: Record<string, unknown> = {};
@@ -288,16 +288,16 @@ export default function SchedulingPage() {
                 />
               </div>
 
-              <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+              <div>
+                <label className="label">Meeting Link <span className="font-normal text-gray-400">(optional — Zoom, Meet, Teams, etc.)</span></label>
                 <input
-                  type="checkbox"
-                  id="virtual"
-                  checked={bookForm.virtual}
-                  onChange={(e) => setBookForm((p) => ({ ...p, virtual: e.target.checked }))}
-                  className="rounded"
+                  type="url"
+                  className="input"
+                  placeholder="https://..."
+                  value={bookForm.meeting_link}
+                  onChange={(e) => setBookForm((p) => ({ ...p, meeting_link: e.target.value }))}
                 />
-                Add Google Meet link
-              </label>
+              </div>
 
               <div>
                 <label className="label">Notes</label>

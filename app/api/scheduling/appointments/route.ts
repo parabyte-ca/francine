@@ -30,10 +30,10 @@ const BookSchema = z.object({
   client_id: z.string().uuid(),
   start_time: z.string().datetime({ offset: true }),
   end_time:   z.string().datetime({ offset: true }),
-  timezone:   z.string().default("America/Toronto"),
-  location:   z.string().default(""),
-  virtual:    z.boolean().default(false),  // request Meet link
-  notes:      z.string().default(""),
+  timezone:     z.string().default("America/Toronto"),
+  location:     z.string().default(""),
+  meeting_link: z.string().default(""),
+  notes:        z.string().default(""),
 });
 
 export async function GET(req: NextRequest) {
@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 422 });
   }
 
-  const { order_id, client_id, start_time, end_time, timezone, location, virtual, notes } = parsed.data;
+  const { order_id, client_id, start_time, end_time, timezone, location, meeting_link, notes } = parsed.data;
 
   try {
     // Fetch order & client for the calendar event title
@@ -87,7 +87,6 @@ export async function POST(req: NextRequest) {
 
     // Create Google Calendar event (non-fatal — booking succeeds without it)
     let eventId = "";
-    let meetLink = "";
     let calendarWarning: string | undefined;
     try {
       const result = await createCalendarEvent({
@@ -97,10 +96,8 @@ export async function POST(req: NextRequest) {
         endIso:      end_time,
         timezone,
         location:    location || undefined,
-        meetLink:    virtual,
       });
-      eventId  = result.eventId;
-      meetLink = result.meetLink;
+      eventId = result.eventId;
     } catch (calErr) {
       const msg = calErr instanceof Error ? calErr.message : String(calErr);
       console.error("Google Calendar event creation failed:", msg);
@@ -118,7 +115,7 @@ export async function POST(req: NextRequest) {
       end_time,
       timezone,
       location,
-      meeting_link:      meetLink,
+      meeting_link,
       status:            "scheduled",
       reminder_sent:     false,
       notes,
@@ -141,7 +138,7 @@ export async function POST(req: NextRequest) {
       serviceType: order.service_type,
       startTime:   new Date(start_time).toLocaleString("en-CA", { timeZone: timezone }),
       location:    location,
-      meetLink:    meetLink || undefined,
+      meetLink:    meeting_link || undefined,
     }).catch((err) => console.error("Appointment email failed:", err));
 
     return NextResponse.json(
