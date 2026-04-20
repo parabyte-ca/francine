@@ -63,71 +63,95 @@ export async function POST(req: NextRequest) {
 
   const { order_id, client_id, start_time, end_time, timezone, location, virtual, notes } = parsed.data;
 
-  // Fetch order & client for the calendar event title
-  const [order, client] = await Promise.all([
-    getOrder(order_id),
-    getClient(client_id),
-  ]);
-  if (!order) return NextResponse.json({ error: "Order not found" }, { status: 404 });
-  if (!client) return NextResponse.json({ error: "Client not found" }, { status: 404 });
+  try {
+    // Fetch order & client for the calendar event title
+    const [order, client] = await Promise.all([
+      getOrder(order_id),
+      getClient(client_id),
+    ]);
+    if (!order) return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    if (!client) return NextResponse.json({ error: "Client not found" }, { status: 404 });
 
-  // Check for calendar conflicts before creating
-  const conflict = await hasCalendarConflict(start_time, end_time);
-  if (conflict) {
+    // Check for calendar conflicts (non-fatal if Calendar is unavailable)
+    try {
+      const conflict = await hasCalendarConflict(start_time, end_time);
+      if (conflict) {
+        return NextResponse.json(
+          { error: "This time slot conflicts with an existing calendar event. Please choose another time." },
+          { status: 409 }
+        );
+      }
+    } catch (calErr) {
+      console.warn("Calendar conflict check failed (skipping):", calErr instanceof Error ? calErr.message : calErr);
+    }
+
+    // Create Google Calendar event (non-fatal — booking succeeds without it)
+    let eventId = "";
+    let meetLink = "";
+    let calendarWarning: string | undefined;
+    try {
+      const result = await createCalendarEvent({
+        title:          `${order.service_type} — ${client.name}`,
+        description:    `Order: ${order_id}\n${order.description}\n\n${notes}`,
+        startIso:       start_time,
+        endIso:         end_time,
+        timezone,
+        location:       location || undefined,
+        attendeeEmails: [client.email],
+        meetLink:       virtual,
+      });
+      eventId  = result.eventId;
+      meetLink = result.meetLink;
+    } catch (calErr) {
+      const msg = calErr instanceof Error ? calErr.message : String(calErr);
+      console.error("Google Calendar event creation failed:", msg);
+      calendarWarning = `Appointment saved, but the Google Calendar event could not be created: ${msg}. Check that the service account has Calendar access in Settings.`;
+    }
+
+    // Write Appointment to Sheets
+    const now = new Date().toISOString();
+    const appointment: Appointment = {
+      appointment_id:    uuidv4(),
+      order_id,
+      client_id,
+      calendar_event_id: eventId,
+      start_time,
+      end_time,
+      timezone,
+      location,
+      meeting_link:      meetLink,
+      status:            "scheduled",
+      reminder_sent:     false,
+      notes,
+      created_at:        now,
+      updated_at:        now,
+    };
+    await createAppointment(appointment);
+
+    // Update Order status
+    await updateOrder(order_id, {
+      status:            "scheduled",
+      scheduled_date:    start_time,
+      calendar_event_id: eventId,
+    });
+
+    // Send confirmation email (non-blocking)
+    sendAppointmentConfirmation({
+      to:          client.email,
+      clientName:  client.name,
+      serviceType: order.service_type,
+      startTime:   new Date(start_time).toLocaleString("en-CA", { timeZone: timezone }),
+      location:    location,
+      meetLink:    meetLink || undefined,
+    }).catch((err) => console.error("Appointment email failed:", err));
+
     return NextResponse.json(
-      { error: "This time slot conflicts with an existing calendar event. Please choose another time." },
-      { status: 409 }
+      { data: appointment, ...(calendarWarning ? { calendar_warning: calendarWarning } : {}) },
+      { status: 201 }
     );
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("Appointment booking failed:", msg);
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
-
-  // 1. Create Google Calendar event
-  const { eventId, meetLink } = await createCalendarEvent({
-    title:          `${order.service_type} — ${client.name}`,
-    description:    `Order: ${order_id}\n${order.description}\n\n${notes}`,
-    startIso:       start_time,
-    endIso:         end_time,
-    timezone,
-    location:       location || undefined,
-    attendeeEmails: [client.email],
-    meetLink:       virtual,
-  });
-
-  // 2. Write Appointment to Sheets
-  const now = new Date().toISOString();
-  const appointment: Appointment = {
-    appointment_id:   uuidv4(),
-    order_id,
-    client_id,
-    calendar_event_id: eventId,
-    start_time,
-    end_time,
-    timezone,
-    location,
-    meeting_link:     meetLink,
-    status:           "scheduled",
-    reminder_sent:    false,
-    notes,
-    created_at:       now,
-    updated_at:       now,
-  };
-  await createAppointment(appointment);
-
-  // 3. Update Order status
-  await updateOrder(order_id, {
-    status:           "scheduled",
-    scheduled_date:   start_time,
-    calendar_event_id: eventId,
-  });
-
-  // 4. Send confirmation email (non-blocking — failure shouldn't abort booking)
-  sendAppointmentConfirmation({
-    to:          client.email,
-    clientName:  client.name,
-    serviceType: order.service_type,
-    startTime:   new Date(start_time).toLocaleString("en-CA", { timeZone: timezone }),
-    location:    location,
-    meetLink:    meetLink || undefined,
-  }).catch((err) => console.error("Appointment email failed:", err));
-
-  return NextResponse.json({ data: appointment }, { status: 201 });
 }
