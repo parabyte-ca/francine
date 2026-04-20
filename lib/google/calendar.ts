@@ -49,6 +49,20 @@ function localHour(date: Date): number {
   );
 }
 
+/** Check whether a time window overlaps any existing calendar event */
+export async function hasCalendarConflict(startIso: string, endIso: string): Promise<boolean> {
+  const calendar = getCalendarClient();
+  const res = await calendar.freebusy.query({
+    requestBody: {
+      timeMin: startIso,
+      timeMax: endIso,
+      items: [{ id: CALENDAR_ID() }],
+    },
+  });
+  const busy = res.data.calendars?.[CALENDAR_ID()]?.busy ?? [];
+  return busy.length > 0;
+}
+
 export async function getAvailability(
   startIso: string,
   endIso: string,
