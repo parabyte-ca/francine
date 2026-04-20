@@ -39,6 +39,8 @@ export default function SchedulingPage() {
   const [clientMap, setClientMap] = useState<Record<string, Client>>({});
   const [orderMap, setOrderMap] = useState<Record<string, Order>>({});
 
+  const [toast, setToast] = useState<string | null>(null);
+
   // Booking modal
   const [bookModal, setBookModal] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<{ start: Date; end: Date } | null>(null);
@@ -156,6 +158,10 @@ export default function SchedulingPage() {
       }
       setBookModal(false);
       fetchAppointments(currentDate);
+      if (typeof json.calendar_warning === "string") {
+        setToast(json.calendar_warning);
+        setTimeout(() => setToast(null), 8000);
+      }
     } finally {
       setBookLoading(false);
     }
@@ -199,6 +205,11 @@ export default function SchedulingPage() {
 
   return (
     <>
+      {toast && (
+        <div className="fixed top-4 right-4 z-50 max-w-sm p-3 bg-yellow-50 border border-yellow-300 rounded-lg text-sm text-yellow-800 shadow-lg">
+          {toast}
+        </div>
+      )}
       <Topbar
         title="Scheduling"
         subtitle="Click a time slot to book · Click an appointment to view details"
