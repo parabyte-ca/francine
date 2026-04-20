@@ -91,14 +91,13 @@ export async function POST(req: NextRequest) {
     let calendarWarning: string | undefined;
     try {
       const result = await createCalendarEvent({
-        title:          `${order.service_type} — ${client.name}`,
-        description:    `Order: ${order_id}\n${order.description}\n\n${notes}`,
-        startIso:       start_time,
-        endIso:         end_time,
+        title:       `${order.service_type} — ${client.name}`,
+        description: `Order: ${order_id}\n${order.description}\n\n${notes}`,
+        startIso:    start_time,
+        endIso:      end_time,
         timezone,
-        location:       location || undefined,
-        attendeeEmails: [client.email],
-        meetLink:       virtual,
+        location:    location || undefined,
+        meetLink:    virtual,
       });
       eventId  = result.eventId;
       meetLink = result.meetLink;
