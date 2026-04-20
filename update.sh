@@ -30,7 +30,7 @@ docker compose -f "$COMPOSE_FILE" up -d --force-recreate --remove-orphans
 
 echo "==> Waiting for health check..."
 for i in $(seq 1 18); do
-  if wget -qO- http://localhost:3002/api/health >/dev/null 2>&1; then
+  if docker exec francine wget -qO- http://localhost:3002/api/health >/dev/null 2>&1; then
     echo "==> Container is healthy."
     break
   fi
