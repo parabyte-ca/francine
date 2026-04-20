@@ -126,9 +126,7 @@ export async function createCalendarEvent(params: {
   endIso: string;
   timezone: string;
   location?: string;
-  attendeeEmails?: string[];
-  meetLink?: boolean; // request a Google Meet conference
-}): Promise<{ eventId: string; meetLink: string }> {
+}): Promise<{ eventId: string }> {
   const calendar = getCalendarClient();
 
   const event: calendar_v3.Schema$Event = {
@@ -137,7 +135,6 @@ export async function createCalendarEvent(params: {
     start: { dateTime: params.startIso, timeZone: params.timezone },
     end: { dateTime: params.endIso, timeZone: params.timezone },
     location: params.location,
-    attendees: params.attendeeEmails?.map((email) => ({ email })),
     reminders: {
       useDefault: false,
       overrides: [
@@ -145,29 +142,15 @@ export async function createCalendarEvent(params: {
         { method: "popup", minutes: 30 },
       ],
     },
-    ...(params.meetLink && {
-      conferenceData: {
-        createRequest: {
-          requestId: `francine-${Date.now()}`,
-          conferenceSolutionKey: { type: "hangoutsMeet" },
-        },
-      },
-    }),
   };
 
   const res = await calendar.events.insert({
     calendarId: CALENDAR_ID(),
-    conferenceDataVersion: params.meetLink ? 1 : 0,
-    sendNotifications: true,
+    sendNotifications: false,
     requestBody: event,
   });
 
-  const eventId = res.data.id!;
-  const meetLink =
-    res.data.conferenceData?.entryPoints?.find((e) => e.entryPointType === "video")
-      ?.uri ?? "";
-
-  return { eventId, meetLink };
+  return { eventId: res.data.id! };
 }
 
 /** Update an existing calendar event */
