@@ -21,7 +21,7 @@ import {
   getOrder,
   getClient,
 } from "@/lib/google/sheets";
-import { createCalendarEvent } from "@/lib/google/calendar";
+import { createCalendarEvent, hasCalendarConflict } from "@/lib/google/calendar";
 import { sendAppointmentConfirmation } from "@/lib/google/gmail";
 import type { Appointment } from "@/types";
 
@@ -70,6 +70,15 @@ export async function POST(req: NextRequest) {
   ]);
   if (!order) return NextResponse.json({ error: "Order not found" }, { status: 404 });
   if (!client) return NextResponse.json({ error: "Client not found" }, { status: 404 });
+
+  // Check for calendar conflicts before creating
+  const conflict = await hasCalendarConflict(start_time, end_time);
+  if (conflict) {
+    return NextResponse.json(
+      { error: "This time slot conflicts with an existing calendar event. Please choose another time." },
+      { status: 409 }
+    );
+  }
 
   // 1. Create Google Calendar event
   const { eventId, meetLink } = await createCalendarEvent({
