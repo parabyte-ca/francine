@@ -22,6 +22,7 @@ export default function PaymentsPage() {
   const [recording, setRecording] = useState<string | null>(null); // invoice_id being recorded
   const [payModal, setPayModal] = useState<Invoice | null>(null);
   const [payForm, setPayForm] = useState({ method: "e-transfer", reference: "", send_receipt: true });
+  const [clientMap, setClientMap] = useState<Record<string, string>>({});
 
   const fetchData = async (status?: string) => {
     const url = status && status !== "all" ? `/api/payments?status=${status}` : "/api/payments";
@@ -30,7 +31,14 @@ export default function PaymentsPage() {
     setData(json.data);
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => {
+    fetchData();
+    fetch("/api/customers").then((r) => r.json()).then((j) => {
+      const map: Record<string, string> = {};
+      for (const c of (j.data ?? [])) map[c.client_id] = c.name;
+      setClientMap(map);
+    });
+  }, []);
 
   const handleFilterChange = (f: string) => {
     setFilter(f);
@@ -123,7 +131,7 @@ export default function PaymentsPage() {
               {invoices.map((inv) => (
                 <tr key={inv.invoice_id} className="border-b last:border-0 hover:bg-gray-50 transition-colors">
                   <td className="py-3 pr-4 font-mono text-xs">{inv.invoice_number}</td>
-                  <td className="py-3 pr-4">{inv.client_id.slice(0, 8)}…</td>
+                  <td className="py-3 pr-4">{clientMap[inv.client_id] ?? `${inv.client_id.slice(0, 8)}…`}</td>
                   <td className={`py-3 pr-4 ${inv.is_overdue ? "text-red-600 font-medium" : "text-gray-600"}`}>
                     {inv.due_date}
                   </td>

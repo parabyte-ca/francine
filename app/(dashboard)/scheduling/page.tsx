@@ -6,7 +6,7 @@ import { format, parse, startOfWeek, getDay, addDays } from "date-fns";
 import { enCA } from "date-fns/locale";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import Topbar from "@/components/Topbar";
-import { Loader2, X, MapPin, Video, Clock, User, FileText } from "lucide-react";
+import { Loader2, X, MapPin, Video, Clock, User, FileText, Plus } from "lucide-react";
 import Link from "next/link";
 import type { Appointment, Client, Order } from "@/types";
 
@@ -47,6 +47,11 @@ export default function SchedulingPage() {
   const [bookForm, setBookForm] = useState({ order_id: "", location: "", meeting_link: "", notes: "" });
   const [bookLoading, setBookLoading] = useState(false);
   const [bookError, setBookError] = useState<string | null>(null);
+
+  // Manual date/time inputs (separate from calendar-click slot)
+  const [manualDate, setManualDate] = useState("");
+  const [manualStart, setManualStart] = useState("09:00");
+  const [manualEnd, setManualEnd] = useState("10:00");
 
   // Appointment detail modal
   const [detailAppt, setDetailAppt] = useState<Appointment | null>(null);
@@ -113,11 +118,30 @@ export default function SchedulingPage() {
     return serviceType ? `${serviceType} — ${label}` : label;
   }
 
-  const handleSelectSlot = ({ start, end }: { start: Date; end: Date }) => {
-    setSelectedSlot({ start, end });
+  const toLocalDateStr = (d: Date) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  };
+
+  const toLocalTimeStr = (d: Date) =>
+    `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+
+  const openBookModal = (start?: Date, end?: Date) => {
+    const s = start ?? new Date();
+    const e = end ?? new Date(s.getTime() + 60 * 60_000);
+    setManualDate(toLocalDateStr(s));
+    setManualStart(toLocalTimeStr(s));
+    setManualEnd(toLocalTimeStr(e));
+    setSelectedSlot(null);
     setBookForm({ order_id: "", location: "", meeting_link: "", notes: "" });
     setBookError(null);
     setBookModal(true);
+  };
+
+  const handleSelectSlot = ({ start, end }: { start: Date; end: Date }) => {
+    openBookModal(start, end);
   };
 
   const handleSelectEvent = (event: CalendarEvent) => {
@@ -130,12 +154,15 @@ export default function SchedulingPage() {
   };
 
   const handleBook = async () => {
-    if (!selectedSlot || !bookForm.order_id) return;
+    if (!bookForm.order_id || !manualDate || !manualStart || !manualEnd) return;
     setBookLoading(true);
     setBookError(null);
     try {
       const order = orderMap[bookForm.order_id];
       if (!order) return;
+
+      const startTime = new Date(`${manualDate}T${manualStart}`).toISOString();
+      const endTime   = new Date(`${manualDate}T${manualEnd}`).toISOString();
 
       const res = await fetch("/api/scheduling/appointments", {
         method: "POST",
@@ -143,8 +170,8 @@ export default function SchedulingPage() {
         body: JSON.stringify({
           order_id:     bookForm.order_id,
           client_id:    order.client_id,
-          start_time:   selectedSlot.start.toISOString(),
-          end_time:     selectedSlot.end.toISOString(),
+          start_time:   startTime,
+          end_time:     endTime,
           location:     bookForm.location,
           meeting_link: bookForm.meeting_link,
           notes:        bookForm.notes,
@@ -213,7 +240,14 @@ export default function SchedulingPage() {
       <Topbar
         title="Scheduling"
         subtitle="Click a time slot to book · Click an appointment to view details"
-        actions={loading ? <Loader2 className="w-4 h-4 animate-spin text-gray-400" /> : undefined}
+        actions={
+          <div className="flex items-center gap-2">
+            {loading && <Loader2 className="w-4 h-4 animate-spin text-gray-400" />}
+            <button onClick={() => openBookModal()} className="btn-primary">
+              <Plus className="w-4 h-4" /> New Booking
+            </button>
+          </div>
+        }
       />
 
       <div className="flex-1 p-6 overflow-hidden">
@@ -236,7 +270,7 @@ export default function SchedulingPage() {
       </div>
 
       {/* ── Book appointment modal ─────────────────────────────────────── */}
-      {bookModal && selectedSlot && (
+      {bookModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
             <div className="flex items-center justify-between p-6 border-b">
@@ -246,13 +280,35 @@ export default function SchedulingPage() {
               </button>
             </div>
             <div className="p-6 space-y-4">
-              <div className="p-3 bg-blue-50 rounded-lg text-sm text-blue-800 flex items-center gap-2">
-                <Clock className="w-4 h-4 shrink-0" />
-                {selectedSlot.start.toLocaleDateString("en-CA", { weekday: "long", month: "long", day: "numeric" })}
-                {" · "}
-                {selectedSlot.start.toLocaleTimeString("en-CA", { hour: "2-digit", minute: "2-digit" })}
-                {" – "}
-                {selectedSlot.end.toLocaleTimeString("en-CA", { hour: "2-digit", minute: "2-digit" })}
+              {/* Date + time inputs */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="col-span-3 sm:col-span-1">
+                  <label className="label">Date *</label>
+                  <input
+                    type="date"
+                    className="input"
+                    value={manualDate}
+                    onChange={(e) => setManualDate(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="label">Start</label>
+                  <input
+                    type="time"
+                    className="input"
+                    value={manualStart}
+                    onChange={(e) => setManualStart(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="label">End</label>
+                  <input
+                    type="time"
+                    className="input"
+                    value={manualEnd}
+                    onChange={(e) => setManualEnd(e.target.value)}
+                  />
+                </div>
               </div>
 
               {bookError && (
@@ -262,7 +318,7 @@ export default function SchedulingPage() {
               )}
 
               <div>
-                <label className="label">Order / Job *</label>
+                <label className="label">Event *</label>
                 <select
                   className="input"
                   value={bookForm.order_id}
@@ -313,7 +369,7 @@ export default function SchedulingPage() {
                 <button onClick={() => setBookModal(false)} className="btn-secondary">Cancel</button>
                 <button
                   onClick={handleBook}
-                  disabled={!bookForm.order_id || bookLoading}
+                  disabled={!bookForm.order_id || !manualDate || bookLoading}
                   className="btn-primary"
                 >
                   {bookLoading && <Loader2 className="w-4 h-4 animate-spin" />}

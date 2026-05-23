@@ -1,14 +1,52 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Topbar from "@/components/Topbar";
 import {
   Loader2, Settings as SettingsIcon, CheckCircle2, AlertCircle,
   RefreshCw, Trash2, UserPlus, FlaskConical, FileDown, BarChart3,
+  Database, DollarSign, Pencil, Plus, X, Check,
 } from "lucide-react";
 import pkg from "@/package.json";
 
 type SetupResult = { message: string; results: Record<string, string> };
+
+interface StandardRate {
+  rate_id: string;
+  service_type: string;
+  unit: string;
+  base_price: number;
+  minimum_charge: number;
+  description: string;
+  active: boolean;
+  effective_date: string;
+}
+
+const DEFAULT_RATES: Omit<StandardRate, "rate_id" | "active" | "effective_date">[] = [
+  { service_type: "ASL-English Interpretation < 90 min", unit: "session",  base_price: 230, minimum_charge: 230, description: "< 90 minutes" },
+  { service_type: "ASL-English Interpretation 2h",       unit: "session",  base_price: 275, minimum_charge: 275, description: "2 hours" },
+  { service_type: "ASL-English Interpretation Half Day", unit: "half-day", base_price: 330, minimum_charge: 330, description: "Half day" },
+  { service_type: "ASL-English Interpretation Full Day", unit: "full-day", base_price: 630, minimum_charge: 630, description: "Full day" },
+  { service_type: "ASL-English Interpretation Conference", unit: "session", base_price: 800, minimum_charge: 800, description: "Conference" },
+  { service_type: "ASL-English Interpretation Custom",   unit: "custom",   base_price: 0,   minimum_charge: 0,   description: "Custom rate" },
+];
+
+type EditingRate = {
+  rate_id: string;
+  service_type: string;
+  unit: string;
+  base_price: string;
+  minimum_charge: string;
+  description: string;
+};
+
+type NewRate = {
+  service_type: string;
+  unit: string;
+  base_price: string;
+  minimum_charge: string;
+  description: string;
+};
 
 export default function SetupPage() {
   const [loading, setLoading] = useState(false);
@@ -27,6 +65,29 @@ export default function SetupPage() {
   const currentYear = new Date().getFullYear();
   const [taxFrom, setTaxFrom] = useState(`${currentYear}-01-01`);
   const [taxTo, setTaxTo] = useState(`${currentYear}-12-31`);
+
+  // Rate management state
+  const [rates, setRates] = useState<StandardRate[]>([]);
+  const [ratesLoading, setRatesLoading] = useState(false);
+  const [editingRate, setEditingRate] = useState<EditingRate | null>(null);
+  const [rateSaving, setRateSaving] = useState(false);
+  const [rateError, setRateError] = useState<string | null>(null);
+  const [addingRate, setAddingRate] = useState(false);
+  const [newRate, setNewRate] = useState<NewRate>({ service_type: "", unit: "session", base_price: "", minimum_charge: "", description: "" });
+  const [seedingRates, setSeedingRates] = useState(false);
+
+  const fetchRates = async () => {
+    setRatesLoading(true);
+    try {
+      const res = await fetch("/api/rates");
+      const json = await res.json();
+      setRates(json.data?.standard_rates ?? []);
+    } finally {
+      setRatesLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchRates(); }, []);
 
   const runSetup = async () => {
     setLoading(true);
@@ -86,6 +147,97 @@ export default function SetupPage() {
     }
   };
 
+  const startEdit = (rate: StandardRate) => {
+    setEditingRate({
+      rate_id:        rate.rate_id,
+      service_type:   rate.service_type,
+      unit:           rate.unit,
+      base_price:     String(rate.base_price),
+      minimum_charge: String(rate.minimum_charge),
+      description:    rate.description,
+    });
+    setRateError(null);
+  };
+
+  const saveEdit = async () => {
+    if (!editingRate) return;
+    setRateSaving(true);
+    setRateError(null);
+    try {
+      const res = await fetch(`/api/rates/${editingRate.rate_id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          service_type:   editingRate.service_type,
+          unit:           editingRate.unit,
+          base_price:     Number(editingRate.base_price),
+          minimum_charge: Number(editingRate.minimum_charge),
+          description:    editingRate.description,
+        }),
+      });
+      if (!res.ok) {
+        const json = await res.json();
+        setRateError(typeof json.error === "string" ? json.error : "Failed to save");
+        return;
+      }
+      setEditingRate(null);
+      await fetchRates();
+    } finally {
+      setRateSaving(false);
+    }
+  };
+
+  const deactivateRate = async (rate_id: string) => {
+    await fetch(`/api/rates/${rate_id}`, { method: "DELETE" });
+    await fetchRates();
+  };
+
+  const saveNewRate = async () => {
+    setRateSaving(true);
+    setRateError(null);
+    try {
+      const res = await fetch("/api/rates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          service_type:   newRate.service_type,
+          unit:           newRate.unit,
+          base_price:     Number(newRate.base_price),
+          minimum_charge: Number(newRate.minimum_charge),
+          description:    newRate.description,
+        }),
+      });
+      if (!res.ok) {
+        const json = await res.json();
+        setRateError(typeof json.error === "string" ? json.error : "Failed to save");
+        return;
+      }
+      setAddingRate(false);
+      setNewRate({ service_type: "", unit: "session", base_price: "", minimum_charge: "", description: "" });
+      await fetchRates();
+    } finally {
+      setRateSaving(false);
+    }
+  };
+
+  const seedDefaultRates = async () => {
+    setSeedingRates(true);
+    try {
+      for (const r of DEFAULT_RATES) {
+        await fetch("/api/rates", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(r),
+        });
+      }
+      await fetchRates();
+    } finally {
+      setSeedingRates(false);
+    }
+  };
+
+  const activeRates = rates.filter((r) => r.active);
+
   return (
     <>
       <Topbar title="Settings" subtitle={`Francine CRM v${pkg.version}`} />
@@ -142,6 +294,226 @@ export default function SetupPage() {
             )}
           </div>
 
+          {/* ── Rate Management ─────────────────────────────────────────────── */}
+          <div className="card">
+            <div className="flex items-start gap-3 mb-4">
+              <div className="p-2.5 rounded-lg bg-brand-50 text-brand-700 flex-shrink-0">
+                <DollarSign className="w-5 h-5" />
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <h2 className="font-semibold text-gray-900">Rate Management</h2>
+                  <div className="flex gap-2">
+                    {activeRates.length === 0 && !ratesLoading && (
+                      <button
+                        onClick={seedDefaultRates}
+                        disabled={seedingRates}
+                        className="btn-secondary text-xs py-1.5"
+                      >
+                        {seedingRates ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+                        Restore Defaults
+                      </button>
+                    )}
+                    <button
+                      onClick={() => { setAddingRate(true); setRateError(null); }}
+                      className="btn-primary text-xs py-1.5"
+                    >
+                      <Plus className="w-3.5 h-3.5" /> Add Rate
+                    </button>
+                  </div>
+                </div>
+                <p className="text-sm text-gray-600 mt-0.5">
+                  Standard rates used when generating invoices.
+                </p>
+              </div>
+            </div>
+
+            {rateError && (
+              <p className="text-xs text-red-600 mb-3">{rateError}</p>
+            )}
+
+            {ratesLoading ? (
+              <div className="flex items-center gap-2 py-4 text-sm text-gray-400">
+                <Loader2 className="w-4 h-4 animate-spin" /> Loading rates…
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {activeRates.length === 0 && !addingRate && (
+                  <p className="text-sm text-gray-400 py-4 text-center">
+                    No rates yet.{" "}
+                    <button onClick={seedDefaultRates} className="text-brand-600 hover:underline">
+                      Restore defaults
+                    </button>
+                  </p>
+                )}
+
+                {activeRates.map((rate) => (
+                  <div key={rate.rate_id} className="border rounded-lg p-3">
+                    {editingRate?.rate_id === rate.rate_id ? (
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="col-span-2">
+                            <label className="label text-xs">Label</label>
+                            <input
+                              type="text"
+                              className="input text-sm"
+                              value={editingRate.description}
+                              onChange={(e) => setEditingRate((p) => p ? { ...p, description: e.target.value } : p)}
+                            />
+                          </div>
+                          <div>
+                            <label className="label text-xs">Rate ($)</label>
+                            <input
+                              type="number"
+                              className="input text-sm"
+                              min={0}
+                              step={0.01}
+                              value={editingRate.base_price}
+                              onChange={(e) => setEditingRate((p) => p ? { ...p, base_price: e.target.value } : p)}
+                            />
+                          </div>
+                          <div>
+                            <label className="label text-xs">Minimum ($)</label>
+                            <input
+                              type="number"
+                              className="input text-sm"
+                              min={0}
+                              step={0.01}
+                              value={editingRate.minimum_charge}
+                              onChange={(e) => setEditingRate((p) => p ? { ...p, minimum_charge: e.target.value } : p)}
+                            />
+                          </div>
+                        </div>
+                        <div className="flex justify-end gap-2">
+                          <button onClick={() => setEditingRate(null)} className="btn-secondary text-xs py-1.5">
+                            <X className="w-3.5 h-3.5" /> Cancel
+                          </button>
+                          <button onClick={saveEdit} disabled={rateSaving} className="btn-primary text-xs py-1.5">
+                            {rateSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                            Save
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">{rate.description || rate.service_type}</p>
+                          <p className="text-xs text-gray-500">{rate.unit}</p>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <div className="text-right">
+                            <p className="text-sm font-semibold text-gray-900">${rate.base_price.toFixed(2)}</p>
+                            {rate.minimum_charge > 0 && (
+                              <p className="text-xs text-gray-400">min ${rate.minimum_charge.toFixed(2)}</p>
+                            )}
+                          </div>
+                          <div className="flex gap-1">
+                            <button
+                              onClick={() => startEdit(rate)}
+                              className="p-1.5 text-gray-400 hover:text-brand-600 hover:bg-brand-50 rounded transition-colors"
+                              title="Edit"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => deactivateRate(rate.rate_id)}
+                              className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                              title="Remove"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+
+                {/* Add new rate form */}
+                {addingRate && (
+                  <div className="border-2 border-dashed border-brand-200 rounded-lg p-3 space-y-3">
+                    <p className="text-xs font-medium text-brand-700">New Rate</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="col-span-2">
+                        <label className="label text-xs">Label</label>
+                        <input
+                          type="text"
+                          className="input text-sm"
+                          placeholder="e.g. 2 hours"
+                          value={newRate.description}
+                          onChange={(e) => setNewRate((p) => ({ ...p, description: e.target.value }))}
+                        />
+                      </div>
+                      <div>
+                        <label className="label text-xs">Rate ($)</label>
+                        <input
+                          type="number"
+                          className="input text-sm"
+                          min={0}
+                          step={0.01}
+                          placeholder="0.00"
+                          value={newRate.base_price}
+                          onChange={(e) => setNewRate((p) => ({ ...p, base_price: e.target.value }))}
+                        />
+                      </div>
+                      <div>
+                        <label className="label text-xs">Minimum ($)</label>
+                        <input
+                          type="number"
+                          className="input text-sm"
+                          min={0}
+                          step={0.01}
+                          placeholder="0.00"
+                          value={newRate.minimum_charge}
+                          onChange={(e) => setNewRate((p) => ({ ...p, minimum_charge: e.target.value }))}
+                        />
+                      </div>
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <button onClick={() => setAddingRate(false)} className="btn-secondary text-xs py-1.5">
+                        Cancel
+                      </button>
+                      <button
+                        onClick={saveNewRate}
+                        disabled={rateSaving || !newRate.description || !newRate.base_price}
+                        className="btn-primary text-xs py-1.5"
+                      >
+                        {rateSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                        Add Rate
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* ── Database Backup ─────────────────────────────────────────────── */}
+          <div className="card">
+            <div className="flex items-start gap-3 mb-4">
+              <div className="p-2.5 rounded-lg bg-brand-50 text-brand-700 flex-shrink-0">
+                <Database className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="font-semibold text-gray-900">Database Backup</h2>
+                <p className="text-sm text-gray-600 mt-0.5">
+                  Download a full JSON export of all your data — clients, events, appointments,
+                  invoices, and rates.
+                </p>
+              </div>
+            </div>
+            <a href="/api/backup" download className="btn-primary no-underline inline-flex items-center gap-2">
+              <FileDown className="w-4 h-4" />
+              Download Backup
+            </a>
+            <p className="mt-3 text-xs text-gray-500">
+              <strong>Automatic backups:</strong> Schedule a daily cron job or task to call{" "}
+              <code className="font-mono bg-gray-100 px-1 rounded">GET /api/backup</code> and save the file.
+              Google Sheets also maintains 30 days of revision history via{" "}
+              <em>File → Version History</em>.
+            </p>
+          </div>
+
           {/* Environment info */}
           <div className="card">
             <div className="flex items-center justify-between mb-3">
@@ -168,7 +540,7 @@ export default function SetupPage() {
             <ul className="space-y-1 text-sm">
               <li><a href="/dashboard" className="text-brand-600 hover:underline">Dashboard</a></li>
               <li><a href="/customers" className="text-brand-600 hover:underline">Customers</a></li>
-              <li><a href="/orders" className="text-brand-600 hover:underline">Orders</a></li>
+              <li><a href="/orders" className="text-brand-600 hover:underline">Events</a></li>
               <li><a href="/invoices" className="text-brand-600 hover:underline">Invoices</a></li>
               <li><a href="/api/health" className="text-brand-600 hover:underline" target="_blank" rel="noopener noreferrer">Health check</a></li>
             </ul>
@@ -302,7 +674,7 @@ export default function SetupPage() {
               <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800 space-y-1">
                 <p className="font-bold">⚠ This is irreversible.</p>
                 <p>
-                  All clients, orders, invoices, appointments, line items, and rates
+                  All clients, events, invoices, appointments, line items, and rates
                   will be permanently deleted from your Google Sheet. This cannot be undone.
                 </p>
               </div>

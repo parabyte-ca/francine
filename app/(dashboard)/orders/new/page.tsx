@@ -8,10 +8,10 @@ import { z } from "zod";
 import Topbar from "@/components/Topbar";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import Link from "next/link";
+import { ASL_SERVICE_TYPE } from "@/lib/constants";
 
 const schema = z.object({
   client_id:      z.string().uuid("Select a valid client"),
-  service_type:   z.string().min(1, "Service type is required"),
   description:    z.string().default(""),
   requested_date: z.string().min(1, "Date is required"),
   duration_hours: z.coerce.number().positive().default(1),
@@ -22,16 +22,6 @@ const schema = z.object({
   notes:          z.string().default(""),
 });
 type FormData = z.infer<typeof schema>;
-
-const SERVICE_TYPES = [
-  "Interpretation — Consecutive",
-  "Interpretation — Simultaneous",
-  "Interpretation — Telephone",
-  "Translation",
-  "Transcription",
-  "Document Review",
-  "Other",
-];
 
 type ClientOption = { client_id: string; name: string; email: string; company: string };
 
@@ -81,7 +71,11 @@ export default function NewOrderPage() {
       const res = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...data, requested_date: new Date(data.requested_date).toISOString() }),
+        body: JSON.stringify({
+          ...data,
+          service_type: ASL_SERVICE_TYPE,
+          requested_date: new Date(data.requested_date).toISOString(),
+        }),
       });
       if (!res.ok) {
         const json = await res.json();
@@ -98,7 +92,7 @@ export default function NewOrderPage() {
   return (
     <>
       <Topbar
-        title="New Order"
+        title="New Event"
         subtitle="Capture a new service request"
         actions={
           <Link href="/orders" className="btn-ghost">
@@ -109,7 +103,7 @@ export default function NewOrderPage() {
       <div className="flex-1 p-6 overflow-y-auto">
         <div className="max-w-2xl mx-auto">
           <form onSubmit={handleSubmit(onSubmit)} className="card space-y-5">
-            <h2 className="font-semibold text-gray-900">Order Intake Form</h2>
+            <h2 className="font-semibold text-gray-900">Event Intake Form</h2>
 
             {error && (
               <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
@@ -150,14 +144,10 @@ export default function NewOrderPage() {
               {errors.client_id && <p className="text-xs text-red-600 mt-1">{errors.client_id.message}</p>}
             </div>
 
-            {/* Service type */}
+            {/* Service type (fixed) */}
             <div>
-              <label className="label">Service Type *</label>
-              <select {...register("service_type")} className="input">
-                <option value="">Select a service…</option>
-                {SERVICE_TYPES.map((s) => <option key={s} value={s}>{s}</option>)}
-              </select>
-              {errors.service_type && <p className="text-xs text-red-600 mt-1">{errors.service_type.message}</p>}
+              <label className="label">Service Type</label>
+              <p className="input bg-gray-50 text-gray-600 cursor-default select-none">{ASL_SERVICE_TYPE}</p>
             </div>
 
             {/* Description */}
@@ -221,7 +211,7 @@ export default function NewOrderPage() {
               <Link href="/orders" className="btn-secondary">Cancel</Link>
               <button type="submit" disabled={loading} className="btn-primary">
                 {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-                Create Order
+                Create Event
               </button>
             </div>
           </form>

@@ -36,7 +36,7 @@ async function DashboardContent() {
     .reduce((s, i) => s + i.total, 0);
 
   const stats = [
-    { label: "Active Orders",    value: activeOrders.length,              icon: ClipboardList, href: "/orders",    color: "text-blue-600 bg-blue-50" },
+    { label: "Active Events",    value: activeOrders.length,              icon: ClipboardList, href: "/orders",    color: "text-blue-600 bg-blue-50" },
     { label: "Total Clients",    value: clients.length,                   icon: Users,         href: "/customers", color: "text-purple-600 bg-purple-50" },
     { label: "Outstanding",      value: `$${totalOutstanding.toFixed(0)}`, icon: DollarSign,   href: "/payments",  color: "text-orange-600 bg-orange-50" },
     { label: "Paid YTD",         value: `$${paidYtd.toFixed(0)}`,         icon: TrendingUp,   href: "/payments",  color: "text-green-600 bg-green-50" },
@@ -103,17 +103,17 @@ async function DashboardContent() {
           )}
         </div>
 
-        {/* Recent orders */}
+        {/* Recent events */}
         <div className="card">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-semibold text-gray-900 flex items-center gap-2">
               <ClipboardList className="w-4 h-4 text-brand-600" />
-              Recent Orders
+              Recent Events
             </h2>
             <Link href="/orders" className="text-xs text-brand-600 hover:underline">View all</Link>
           </div>
           {orders.length === 0 ? (
-            <p className="text-sm text-gray-400 py-6 text-center">No orders yet</p>
+            <p className="text-sm text-gray-400 py-6 text-center">No events yet</p>
           ) : (
             <div className="space-y-3">
               {orders.slice(0, 5).map((o) => (
