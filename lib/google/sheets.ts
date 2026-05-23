@@ -276,6 +276,17 @@ export async function getCustomRate(
   return rates.find((r) => r.service_type === service_type) ?? null;
 }
 
+export async function createStandardRate(rate: StandardRate): Promise<void> {
+  await appendRow("Standard_Rates", STANDARD_RATE_HEADERS as string[], rate as unknown as Record<string, unknown>);
+}
+
+export async function updateStandardRate(
+  rate_id: string,
+  updates: Partial<StandardRate>
+): Promise<void> {
+  await updateRow("Standard_Rates", STANDARD_RATE_HEADERS as string[], rate_id, updates as Record<string, unknown>);
+}
+
 export async function createCustomRate(rate: CustomRate): Promise<void> {
   await appendRow("Custom_Rates", CUSTOM_RATE_HEADERS as string[], rate as unknown as Record<string, unknown>);
 }
@@ -352,6 +363,10 @@ export async function updateInvoice(
 export async function listLineItems(invoice_id: string): Promise<InvoiceLineItem[]> {
   const items = await readSheet<InvoiceLineItem>("Invoice_Line_Items", LINE_ITEM_HEADERS as string[]);
   return items.filter((item) => item.invoice_id === invoice_id);
+}
+
+export async function listAllLineItems(): Promise<InvoiceLineItem[]> {
+  return readSheet<InvoiceLineItem>("Invoice_Line_Items", LINE_ITEM_HEADERS as string[]);
 }
 
 export async function appendLineItem(item: InvoiceLineItem): Promise<void> {

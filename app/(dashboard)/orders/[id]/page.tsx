@@ -16,7 +16,7 @@ export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
   const order = await getOrder(params.id);
-  return { title: order ? `${order.service_type} — Order` : "Order" };
+  return { title: order ? `${order.service_type} — Event` : "Event" };
 }
 
 export default async function OrderDetailPage({ params }: { params: { id: string } }) {
@@ -35,7 +35,7 @@ export default async function OrderDetailPage({ params }: { params: { id: string
     <>
       <Topbar
         title={order.service_type}
-        subtitle={`Order ${params.id.slice(0, 8)}…`}
+        subtitle={`Event ${params.id.slice(0, 8)}…`}
         actions={
           <Link href="/orders" className="btn-ghost">
             <ArrowLeft className="w-4 h-4" /> <span className="hidden sm:inline">Back</span>

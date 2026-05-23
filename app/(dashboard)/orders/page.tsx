@@ -6,7 +6,7 @@ import { listOrders, listClients } from "@/lib/google/sheets";
 import { Plus, Search } from "lucide-react";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "Orders" };
+export const metadata: Metadata = { title: "Events" };
 export const revalidate = 60;
 
 async function OrdersTable({ status }: { status?: string }) {
@@ -39,7 +39,7 @@ async function OrdersTable({ status }: { status?: string }) {
           {sorted.length === 0 && (
             <tr>
               <td colSpan={6} className="py-12 text-center text-gray-400">
-                No orders found.{" "}
+                No events found.{" "}
                 <Link href="/orders/new" className="text-brand-600 hover:underline">
                   Create the first one
                 </Link>
@@ -88,11 +88,11 @@ export default function OrdersPage({
   return (
     <>
       <Topbar
-        title="Orders"
+        title="Events"
         subtitle="Manage your service pipeline"
         actions={
           <Link href="/orders/new" className="btn-primary">
-            <Plus className="w-4 h-4" /> New Order
+            <Plus className="w-4 h-4" /> New Event
           </Link>
         }
       />
@@ -115,7 +115,7 @@ export default function OrdersPage({
         </div>
 
         <div className="card">
-          <Suspense fallback={<p className="text-sm text-gray-400">Loading orders…</p>}>
+          <Suspense fallback={<p className="text-sm text-gray-400">Loading events…</p>}>
             <OrdersTable status={searchParams.status} />
           </Suspense>
         </div>

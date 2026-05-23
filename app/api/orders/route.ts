@@ -8,11 +8,12 @@ import { v4 as uuidv4 } from "uuid";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { createOrder, listOrders } from "@/lib/google/sheets";
+import { ASL_SERVICE_TYPE } from "@/lib/constants";
 import type { Order } from "@/types";
 
 const CreateOrderSchema = z.object({
   client_id:      z.string().uuid(),
-  service_type:   z.string().min(1),
+  service_type:   z.string().optional(),
   description:    z.string().default(""),
   requested_date: z.string().datetime({ offset: true }).or(z.string().date()),
   duration_hours: z.coerce.number().positive().default(1),
@@ -53,6 +54,7 @@ export async function POST(req: NextRequest) {
     calendar_event_id: "",
     quote_amount:     0,
     ...parsed.data,
+    service_type: ASL_SERVICE_TYPE,
     created_at: now,
     updated_at: now,
   };
