@@ -12,91 +12,10 @@
  * you must use an OAuth2 client with a refresh token from the sender address.
  */
 
-import { google } from "googleapis";
-import { getServiceAccountAuth } from "./auth";
+import { sendEmail } from "../email";
 
-// ---------------------------------------------------------------------------
-// Internal: build an RFC-2822-compliant message
-// ---------------------------------------------------------------------------
-
-function buildRawMessage(params: {
-  to: string;
-  from: string;
-  subject: string;
-  htmlBody: string;
-  attachmentBuffer?: Buffer;
-  attachmentFilename?: string;
-  attachmentMime?: string;
-}): string {
-  const boundary = `----=_Part_${Date.now()}`;
-  const from = params.from || process.env.GMAIL_FROM_ADDRESS!;
-
-  const message = [
-    `From: ${from}`,
-    `To: ${params.to}`,
-    `Subject: ${params.subject}`,
-    `MIME-Version: 1.0`,
-  ];
-
-  if (params.attachmentBuffer) {
-    message.push(`Content-Type: multipart/mixed; boundary="${boundary}"`);
-    message.push("");
-    message.push(`--${boundary}`);
-    message.push(`Content-Type: text/html; charset=UTF-8`);
-    message.push(`Content-Transfer-Encoding: quoted-printable`);
-    message.push("");
-    message.push(params.htmlBody);
-    message.push(`--${boundary}`);
-    message.push(
-      `Content-Type: ${params.attachmentMime ?? "application/pdf"}; name="${params.attachmentFilename}"`
-    );
-    message.push(`Content-Transfer-Encoding: base64`);
-    message.push(`Content-Disposition: attachment; filename="${params.attachmentFilename}"`);
-    message.push("");
-    message.push(params.attachmentBuffer.toString("base64"));
-    message.push(`--${boundary}--`);
-  } else {
-    message.push(`Content-Type: text/html; charset=UTF-8`);
-    message.push("");
-    message.push(params.htmlBody);
-  }
-
-  return Buffer.from(message.join("\r\n"))
-    .toString("base64")
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "");
-}
-
-// ---------------------------------------------------------------------------
-// Core send function
-// ---------------------------------------------------------------------------
-
-export async function sendEmail(params: {
-  to: string;
-  subject: string;
-  htmlBody: string;
-  attachmentBuffer?: Buffer;
-  attachmentFilename?: string;
-}): Promise<void> {
-  const auth = getServiceAccountAuth();
-  const gmail = google.gmail({ version: "v1", auth });
-
-  const raw = buildRawMessage({
-    to: params.to,
-    from: process.env.GMAIL_FROM_ADDRESS!,
-    subject: params.subject,
-    htmlBody: params.htmlBody,
-    attachmentBuffer: params.attachmentBuffer,
-    attachmentFilename: params.attachmentFilename,
-    attachmentMime: "application/pdf",
-  });
-
-  await gmail.users.messages.send({
-    userId: "me",
-    requestBody: { raw },
-  });
-}
+// Re-export so existing imports of sendEmail from this module still work
+export { sendEmail };
 
 // ---------------------------------------------------------------------------
 // High-level email templates

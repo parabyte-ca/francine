@@ -25,7 +25,6 @@ import {
   getOrder,
   getClient,
   updateOrder,
-  getConfig,
 } from "@/lib/google/sheets";
 import { resolvePrice, calculateInvoiceTotals, PricingError } from "@/lib/pricing-engine";
 import { generateInvoicePdf } from "@/lib/pdf-generator";
@@ -183,11 +182,9 @@ export async function POST(req: NextRequest) {
     let emailWarning: string | undefined;
     if (requestedStatus === "sent") {
       try {
-        const emailOverride = await getConfig("invoice_email_override");
-        const recipient = emailOverride?.trim() || client.email;
-        const buf = pdfBuffer ?? await generateInvoicePdf({ invoice, lineItems: resolvedItems, client });
+          const buf = pdfBuffer ?? await generateInvoicePdf({ invoice, lineItems: resolvedItems, client });
         await sendInvoiceEmail({
-          to:            recipient,
+          to:            client.email,
           clientName:    client.name,
           invoiceNumber: invoice.invoice_number,
           total:         invoice.total,

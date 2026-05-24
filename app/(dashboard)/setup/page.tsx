@@ -66,15 +66,25 @@ export default function SetupPage() {
   const [taxFrom, setTaxFrom] = useState(`${currentYear}-01-01`);
   const [taxTo, setTaxTo] = useState(`${currentYear}-12-31`);
 
-  // Email override state
+  // Email settings state
   const [emailOverride, setEmailOverride] = useState("");
   const [emailSaving, setEmailSaving] = useState(false);
   const [emailSaved, setEmailSaved] = useState(false);
+  const [gmailConnected, setGmailConnected] = useState(false);
+  const [resendConfigured, setResendConfigured] = useState(false);
 
   useEffect(() => {
     fetch("/api/settings")
       .then((r) => r.json())
-      .then((j) => setEmailOverride(j.data?.invoice_email_override ?? ""));
+      .then((j) => {
+        setEmailOverride(j.data?.invoice_email_override ?? "");
+        setGmailConnected(j.data?.gmail_connected ?? false);
+        setResendConfigured(j.data?.resend_configured ?? false);
+      });
+    // Show connection result from OAuth callback
+    const params = new URLSearchParams(window.location.search);
+    const gmailParam = params.get("gmail");
+    if (gmailParam === "connected") setGmailConnected(true);
   }, []);
 
   const saveEmailOverride = async () => {
@@ -307,6 +317,52 @@ export default function SetupPage() {
                 Override active — invoice emails will go to <strong>{emailOverride}</strong>
               </p>
             )}
+          </div>
+
+          {/* Email provider */}
+          <div className="card space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="p-2.5 rounded-lg bg-brand-50 text-brand-700 flex-shrink-0">
+                <FlaskConical className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="font-semibold text-gray-900">Email Provider</h2>
+                <p className="text-sm text-gray-600 mt-1">
+                  Connect a provider to send invoice emails. Resend (API key) takes priority over Gmail OAuth2.
+                </p>
+              </div>
+            </div>
+
+            {resendConfigured ? (
+              <div className="flex items-center gap-2 text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+                <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+                Resend configured via <code className="font-mono text-xs">RESEND_API_KEY</code> — emails will use Resend.
+              </div>
+            ) : (
+              <p className="text-xs text-gray-500">
+                No Resend key detected. Set <code className="font-mono">RESEND_API_KEY</code> in <code className="font-mono">.env.local</code> for instant setup (resend.com — free tier available).
+              </p>
+            )}
+
+            <div className="border-t pt-4">
+              <p className="text-sm font-medium text-gray-700 mb-2">Gmail OAuth2</p>
+              {gmailConnected ? (
+                <div className="flex items-center gap-2 text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+                  <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+                  Gmail connected — sending as <strong>{process.env.NEXT_PUBLIC_GMAIL_FROM ?? "your Gmail account"}</strong>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <p className="text-xs text-gray-500">
+                    Authorise the app to send email via your Google account.
+                    Your <code className="font-mono">GOOGLE_CLIENT_ID</code> must have the <code className="font-mono">https://mail.google.com/</code> scope enabled in Google Cloud Console.
+                  </p>
+                  <a href="/api/settings/gmail-connect" className="btn-secondary text-sm inline-flex">
+                    Connect Gmail Account
+                  </a>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Setup action */}

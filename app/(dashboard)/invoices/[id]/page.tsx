@@ -3,7 +3,7 @@ import Link from "next/link";
 import Topbar from "@/components/Topbar";
 import StatusBadge from "@/components/StatusBadge";
 import { getInvoice, getClient, listLineItems, getOrder } from "@/lib/google/sheets";
-import { ArrowLeft, FileText, ExternalLink } from "lucide-react";
+import { ArrowLeft, FileText, ExternalLink, Download } from "lucide-react";
 import InvoiceActions from "./InvoiceActions";
 import type { Metadata } from "next";
 
@@ -152,18 +152,28 @@ export default async function InvoiceDetailPage({ params }: { params: { id: stri
           </div>
         )}
 
-        {invoice.drive_file_url && (
-          <div className="card">
+        <div className="card">
+          <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+            <FileText className="w-4 h-4 text-brand-600" /> Invoice PDF
+          </h3>
+          <div className="flex flex-wrap gap-2">
             <a
-              href={invoice.drive_file_url}
+              href={`/api/invoices/${invoice.invoice_id}/pdf`}
               target="_blank"
               rel="noopener noreferrer"
-              className="btn-secondary w-full justify-center"
+              className="btn-secondary text-sm"
             >
-              <ExternalLink className="w-4 h-4" /> Open PDF in Google Drive
+              <ExternalLink className="w-4 h-4" /> Preview
+            </a>
+            <a
+              href={`/api/invoices/${invoice.invoice_id}/pdf?download=1`}
+              download={`${invoice.invoice_number}.pdf`}
+              className="btn-primary text-sm"
+            >
+              <Download className="w-4 h-4" /> Download PDF
             </a>
           </div>
-        )}
+        </div>
       </div>
     </>
   );
