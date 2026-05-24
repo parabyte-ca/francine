@@ -68,7 +68,6 @@ export async function POST(req: NextRequest) {
   const client: Client = {
     client_id:        uuidv4(),
     has_custom_rates: false,
-    contacts:         "",
     ...parsed.data,
     abbreviation: abbr.toUpperCase().slice(0, 4),
     created_at: now,
