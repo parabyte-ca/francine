@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import Topbar from "@/components/Topbar";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2, AlertTriangle, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { ASL_SERVICE_TYPE } from "@/lib/constants";
 
@@ -34,12 +34,18 @@ export default function NewOrderPage() {
   const [selectedTeam, setSelectedTeam] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [calendarWarning, setCalendarWarning] = useState<string | null>(null);
+  const [conflict, setConflict] = useState<{ checking: boolean; detected: boolean }>({
+    checking: false,
+    detected: false,
+  });
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const {
     register,
     handleSubmit,
     setValue,
+    watch,
     formState: { errors },
   } = useForm<FormData>({ resolver: zodResolver(schema) });
 
@@ -48,6 +54,38 @@ export default function NewOrderPage() {
       .then((r) => r.json())
       .then((j) => setAllClients(j.data ?? []));
   }, []);
+
+  // ── Real-time conflict check ──────────────────────────────────────────────
+  const requestedDate  = watch("requested_date");
+  const durationHours  = watch("duration_hours");
+
+  useEffect(() => {
+    if (!requestedDate || !durationHours) {
+      setConflict({ checking: false, detected: false });
+      return;
+    }
+    const start = new Date(requestedDate);
+    if (isNaN(start.getTime())) {
+      setConflict({ checking: false, detected: false });
+      return;
+    }
+    const end = new Date(start.getTime() + Number(durationHours) * 3_600_000);
+    setConflict({ checking: true, detected: false });
+
+    const timer = setTimeout(async () => {
+      try {
+        const res  = await fetch(
+          `/api/scheduling/check-conflict?start=${start.toISOString()}&end=${end.toISOString()}`
+        );
+        const json = await res.json();
+        setConflict({ checking: false, detected: json.conflict ?? false });
+      } catch {
+        setConflict({ checking: false, detected: false });
+      }
+    }, 600);
+
+    return () => clearTimeout(timer);
+  }, [requestedDate, durationHours]);
 
   const filteredClients = clientSearch.trim() === ""
     ? allClients
@@ -73,6 +111,7 @@ export default function NewOrderPage() {
   const onSubmit = async (data: FormData) => {
     setLoading(true);
     setError(null);
+    setCalendarWarning(null);
     try {
       const res = await fetch("/api/orders", {
         method: "POST",
@@ -89,6 +128,11 @@ export default function NewOrderPage() {
         return;
       }
       const json = await res.json();
+      if (json.calendar_warning) {
+        setCalendarWarning(json.calendar_warning);
+        // Brief pause so the user sees the warning, then redirect
+        await new Promise((r) => setTimeout(r, 2500));
+      }
       router.push(`/orders/${json.data.order_id}`);
     } finally {
       setLoading(false);
@@ -114,6 +158,17 @@ export default function NewOrderPage() {
             {error && (
               <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
                 {error}
+              </div>
+            )}
+
+            {calendarWarning && (
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800 flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-medium">Calendar warning</p>
+                  <p>{calendarWarning}</p>
+                  <p className="text-xs mt-1 text-amber-600">Event was created. Redirecting…</p>
+                </div>
               </div>
             )}
 
@@ -179,6 +234,27 @@ export default function NewOrderPage() {
                 <input type="number" {...register("duration_hours")} className="input" min={0.25} step={0.25} defaultValue={1} />
               </div>
             </div>
+
+            {/* Conflict indicator */}
+            {conflict.checking && (
+              <div className="flex items-center gap-2 text-xs text-gray-500">
+                <Loader2 className="w-3.5 h-3.5 animate-spin" /> Checking calendar…
+              </div>
+            )}
+            {!conflict.checking && conflict.detected && (
+              <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+                <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-medium">Calendar conflict detected</p>
+                  <p className="text-xs mt-0.5">Another appointment overlaps this time slot. You can still create this event — the conflict will be noted.</p>
+                </div>
+              </div>
+            )}
+            {!conflict.checking && !conflict.detected && requestedDate && durationHours && (
+              <div className="flex items-center gap-2 text-xs text-green-600">
+                <CheckCircle2 className="w-3.5 h-3.5" /> Time slot is available
+              </div>
+            )}
 
             {/* Location */}
             <div>
