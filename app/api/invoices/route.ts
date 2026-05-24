@@ -17,6 +17,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { v4 as uuidv4 } from "uuid";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
+import { computeClientAbbr } from "@/lib/invoice-utils";
 import {
   createInvoice,
   appendLineItem,
@@ -120,7 +121,7 @@ export async function POST(req: NextRequest) {
 
     // ── Build invoice record ─────────────────────────────────────────────────
     const invoiceId     = uuidv4();
-    const invoiceNumber = await nextInvoiceNumber(client.abbreviation || "");
+    const invoiceNumber = await nextInvoiceNumber(computeClientAbbr(client.company, client.name));
     const now           = new Date();
     const issueDate     = now.toISOString().split("T")[0];
     const dueDate       = new Date(now.getTime() + due_days * 86_400_000)

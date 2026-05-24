@@ -8,15 +8,7 @@ import { z } from "zod";
 import Link from "next/link";
 import { Loader2, Plus, X } from "lucide-react";
 import type { Client } from "@/types";
-
-function autoAbbreviation(company: string, name: string): string {
-  const src = (company.trim() || name.trim());
-  const words = src.split(/[\s\-]+/).filter(Boolean);
-  if (words.length === 0) return "INV";
-  if (words.length === 1) return words[0].slice(0, 3).toUpperCase();
-  // Short words (≤2 chars, e.g. "TD") contribute all chars; longer words contribute first letter only
-  return words.map(w => w.length <= 2 ? w.toUpperCase() : w[0].toUpperCase()).join("").slice(0, 4);
-}
+import { computeClientAbbr } from "@/lib/invoice-utils";
 
 const schema = z.object({
   name:               z.string().min(1, "Name is required"),
@@ -63,7 +55,7 @@ export default function EditClientForm({ client }: { client: Client }) {
       language_pair:      client.language_pair ?? "",
       default_tax_exempt: client.default_tax_exempt,
       notes:              client.notes,
-      abbreviation:       client.abbreviation || autoAbbreviation(client.company || "", client.name),
+      abbreviation:       client.abbreviation || computeClientAbbr(client.company || "", client.name),
     },
   });
 
@@ -72,7 +64,7 @@ export default function EditClientForm({ client }: { client: Client }) {
 
   useEffect(() => {
     if (!abbrManual) {
-      setValue("abbreviation", autoAbbreviation(companyValue, nameValue));
+      setValue("abbreviation", computeClientAbbr(companyValue, nameValue));
     }
   }, [nameValue, companyValue, abbrManual, setValue]);
 
