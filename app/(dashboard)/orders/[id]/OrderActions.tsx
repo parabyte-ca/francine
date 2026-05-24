@@ -89,6 +89,20 @@ export default function OrderActions({ orderId, status, hasInvoice, order }: Pro
   );
 }
 
+function selectTier(hours: number): string {
+  if (hours <= 1.5) return "ASL-English Interpretation < 90 min";
+  if (hours <= 2)   return "ASL-English Interpretation 2h";
+  if (hours <= 4)   return "ASL-English Interpretation Half Day";
+  return                   "ASL-English Interpretation Full Day";
+}
+
+function tierLabel(tier: string): string {
+  if (tier.includes("< 90")) return "< 90 min session";
+  if (tier.includes("2h"))   return "2h session";
+  if (tier.includes("Half")) return "half-day";
+  return                            "full-day";
+}
+
 function GenerateInvoiceModal({
   order,
   onClose,
@@ -98,59 +112,42 @@ function GenerateInvoiceModal({
   onClose: () => void;
   onDone: (id: string) => void;
 }) {
-  const LINE_ITEM_TYPES = [
-    "Interpretation — Consecutive",
-    "Interpretation — Simultaneous",
-    "Interpretation — Telephone",
-    "Translation",
-    "Transcription",
-    "Document Review",
-    "Mileage",
-    "Parking",
-    "Other",
-  ];
-
-  const [items, setItems] = useState([
-    {
-      service_type: "Interpretation — Consecutive",
-      service_type_custom: "",
-      quantity: order.duration_hours || 1,
-      manual_override_price: "",
-      description: order.description || "",
-    },
-  ]);
+  const [hours, setHours] = useState(order.duration_hours || 1);
+  const [overridePrice, setOverridePrice] = useState("");
+  const [mileage, setMileage] = useState<string | null>(
+    order.mileage_cost > 0 ? String(order.mileage_cost) : null
+  );
+  const [parking, setParking] = useState<string | null>(
+    order.parking_cost > 0 ? String(order.parking_cost) : null
+  );
   const [dueDays, setDueDays] = useState(30);
   const [notes, setNotes] = useState(order.notes || "");
   const [invoiceStatus, setInvoiceStatus] = useState<"draft" | "sent">("draft");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const addItem = () =>
-    setItems((prev) => [...prev, { service_type: "", service_type_custom: "", quantity: 1, manual_override_price: "", description: "" }]);
-
-  const removeItem = (i: number) =>
-    setItems((prev) => prev.filter((_, idx) => idx !== i));
-
-  const update = (i: number, patch: Partial<(typeof items)[number]>) =>
-    setItems((prev) => prev.map((it, idx) => (idx === i ? { ...it, ...patch } : it)));
+  const tier = selectTier(hours);
 
   const submit = async () => {
     setError(null);
-    const line_items = items
-      .filter((it) => it.service_type.trim())
-      .map((it) => ({
-        service_type: it.service_type === "Other" ? (it.service_type_custom.trim() || "Other") : it.service_type,
-        description: it.description,
-        quantity: Number(it.quantity) || 1,
-        manual_override_price: it.manual_override_price
-          ? Number(it.manual_override_price)
-          : undefined,
+    const line_items: Array<{
+      service_type: string;
+      quantity: number;
+      manual_override_price?: number;
+      notes: string;
+    }> = [
+      {
+        service_type: tier,
+        quantity: hours,
+        manual_override_price: overridePrice ? Number(overridePrice) : undefined,
         notes: "",
-      }));
-
-    if (line_items.length === 0) {
-      setError("Add at least one line item");
-      return;
+      },
+    ];
+    if (mileage !== null && Number(mileage) > 0) {
+      line_items.push({ service_type: "Mileage", quantity: 1, manual_override_price: Number(mileage), notes: "" });
+    }
+    if (parking !== null && Number(parking) > 0) {
+      line_items.push({ service_type: "Parking", quantity: 1, manual_override_price: Number(parking), notes: "" });
     }
 
     setLoading(true);
@@ -158,18 +155,12 @@ function GenerateInvoiceModal({
       const res = await fetch("/api/invoices", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          order_id: order.order_id,
-          due_days: dueDays,
-          notes,
-          status: invoiceStatus,
-          line_items,
-        }),
+        body: JSON.stringify({ order_id: order.order_id, due_days: dueDays, notes, status: invoiceStatus, line_items }),
       });
       let json: Record<string, unknown> = {};
-      try { json = await res.json(); } catch { /* non-JSON error body */ }
+      try { json = await res.json(); } catch { /* non-JSON */ }
       if (!res.ok) {
-        setError(typeof json.error === "string" ? json.error : `Server error ${res.status} — check that standard rates are configured for these service types.`);
+        setError(typeof json.error === "string" ? json.error : `Server error ${res.status} — check that standard rates are configured.`);
         return;
       }
       onDone((json.data as { invoice: { invoice_id: string } }).invoice.invoice_id);
@@ -191,91 +182,103 @@ function GenerateInvoiceModal({
             </button>
           </div>
 
-          <div className="p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-600">
-            Pre-filled from event details — edit as needed.
-            {(order.mileage_cost > 0 || order.parking_cost > 0) && (
-              <span className="block mt-0.5 text-gray-500">
-                Auto-added:{" "}
-                {[
-                  order.mileage_cost > 0 && `Mileage $${order.mileage_cost.toFixed(2)}`,
-                  order.parking_cost > 0 && `Parking $${order.parking_cost.toFixed(2)}`,
-                ].filter(Boolean).join(" · ")}
-              </span>
-            )}
-          </div>
-
           {error && (
             <div className="p-2.5 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">
               {error}
             </div>
           )}
 
-          <div className="space-y-3">
-            {items.map((it, i) => (
-              <div key={i} className="p-3 border rounded-lg space-y-2 bg-gray-50">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-gray-500">Item {i + 1}</span>
-                  {items.length > 1 && (
-                    <button onClick={() => removeItem(i)} className="text-xs text-red-500 hover:underline">
-                      Remove
-                    </button>
-                  )}
-                </div>
-                <select
-                  className="input"
-                  value={it.service_type}
-                  onChange={(e) => update(i, { service_type: e.target.value, service_type_custom: "" })}
-                >
-                  <option value="">Select service type…</option>
-                  {LINE_ITEM_TYPES.map((t) => (
-                    <option key={t} value={t}>{t}</option>
-                  ))}
-                </select>
-                {it.service_type === "Other" && (
-                  <input
-                    className="input"
-                    placeholder="Describe the service…"
-                    value={it.service_type_custom}
-                    onChange={(e) => update(i, { service_type_custom: e.target.value })}
-                  />
-                )}
+          {/* Interpretation row */}
+          <div className="p-3 border rounded-lg space-y-2 bg-gray-50">
+            <p className="text-xs font-medium text-gray-700">ASL-English Interpretation</p>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="label text-xs">Hours</label>
                 <input
+                  type="number"
+                  min={0.25}
+                  step={0.25}
                   className="input"
-                  placeholder="Description (optional)"
-                  value={it.description}
-                  onChange={(e) => update(i, { description: e.target.value })}
+                  value={hours}
+                  onChange={(e) => setHours(Number(e.target.value))}
                 />
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="label text-xs">Quantity</label>
-                    <input
-                      type="number"
-                      min={0}
-                      step={0.01}
-                      className="input"
-                      value={it.quantity}
-                      onChange={(e) => update(i, { quantity: Number(e.target.value) })}
-                    />
-                  </div>
-                  <div>
-                    <label className="label text-xs">Override Price</label>
-                    <input
-                      type="number"
-                      min={0}
-                      step={0.01}
-                      className="input"
-                      placeholder="auto"
-                      value={it.manual_override_price}
-                      onChange={(e) => update(i, { manual_override_price: e.target.value })}
-                    />
-                  </div>
-                </div>
               </div>
-            ))}
-            <button onClick={addItem} className="btn-secondary text-xs w-full justify-center">
-              + Add Line Item
-            </button>
+              <div>
+                <label className="label text-xs">Override Price</label>
+                <input
+                  type="number"
+                  min={0}
+                  step={0.01}
+                  className="input"
+                  placeholder="auto"
+                  value={overridePrice}
+                  onChange={(e) => setOverridePrice(e.target.value)}
+                />
+              </div>
+            </div>
+            <p className="text-xs text-gray-500">
+              Tier: <span className="font-medium text-gray-700">{tierLabel(tier)}</span>
+              {!overridePrice && <span className="text-gray-400"> — rate from your rate table</span>}
+            </p>
           </div>
+
+          {/* Mileage row */}
+          {mileage !== null ? (
+            <div className="p-3 border rounded-lg space-y-2 bg-gray-50">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-medium text-gray-700">Mileage</p>
+                <button onClick={() => setMileage(null)} className="text-xs text-red-500 hover:underline">Remove</button>
+              </div>
+              <div>
+                <label className="label text-xs">Amount ($)</label>
+                <input
+                  type="number"
+                  min={0}
+                  step={0.01}
+                  className="input"
+                  value={mileage}
+                  onChange={(e) => setMileage(e.target.value)}
+                />
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setMileage("0")}
+              className="text-xs text-brand-600 hover:text-brand-700 font-medium"
+            >
+              + Add mileage
+            </button>
+          )}
+
+          {/* Parking row */}
+          {parking !== null ? (
+            <div className="p-3 border rounded-lg space-y-2 bg-gray-50">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-medium text-gray-700">Parking</p>
+                <button onClick={() => setParking(null)} className="text-xs text-red-500 hover:underline">Remove</button>
+              </div>
+              <div>
+                <label className="label text-xs">Amount ($)</label>
+                <input
+                  type="number"
+                  min={0}
+                  step={0.01}
+                  className="input"
+                  value={parking}
+                  onChange={(e) => setParking(e.target.value)}
+                />
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setParking("0")}
+              className="text-xs text-brand-600 hover:text-brand-700 font-medium"
+            >
+              + Add parking
+            </button>
+          )}
 
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -305,9 +308,7 @@ function GenerateInvoiceModal({
               type="button"
               onClick={() => setInvoiceStatus("draft")}
               className={`flex-1 py-2 text-sm rounded-md font-medium transition-colors ${
-                invoiceStatus === "draft"
-                  ? "bg-white text-gray-900 shadow-sm"
-                  : "text-gray-500 hover:text-gray-700"
+                invoiceStatus === "draft" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
               }`}
             >
               Save as Draft
@@ -316,16 +317,14 @@ function GenerateInvoiceModal({
               type="button"
               onClick={() => setInvoiceStatus("sent")}
               className={`flex-1 py-2 text-sm rounded-md font-medium transition-colors ${
-                invoiceStatus === "sent"
-                  ? "bg-white text-gray-900 shadow-sm"
-                  : "text-gray-500 hover:text-gray-700"
+                invoiceStatus === "sent" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
               }`}
             >
               Generate &amp; Send
             </button>
           </div>
           {invoiceStatus === "sent" && (
-            <p className="text-xs text-blue-600">
+            <p className="text-xs text-brand-600">
               The invoice PDF will be emailed to the client immediately.
             </p>
           )}

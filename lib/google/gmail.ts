@@ -114,7 +114,7 @@ export async function sendInvoiceEmail(params: {
   const subject = `Invoice ${params.invoiceNumber} — Payment Due ${params.dueDate}`;
   const htmlBody = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <h2 style="color: #1d4ed8;">Invoice ${params.invoiceNumber}</h2>
+      <h2 style="color: #d97706;">Invoice ${params.invoiceNumber}</h2>
       <p>Hi ${params.clientName},</p>
       <p>Please find your invoice attached. Here's a summary:</p>
       <table style="width:100%; border-collapse:collapse; margin:16px 0;">
@@ -132,7 +132,7 @@ export async function sendInvoiceEmail(params: {
         </tr>
       </table>
       <p>
-        <a href="${params.driveUrl}" style="background:#1d4ed8; color:white; padding:10px 20px;
+        <a href="${params.driveUrl}" style="background:#d97706; color:white; padding:10px 20px;
            border-radius:4px; text-decoration:none;">View Invoice PDF</a>
       </p>
       <p style="color:#6b7280; font-size:12px;">
@@ -160,7 +160,7 @@ export async function sendAppointmentConfirmation(params: {
   const subject = `Appointment Confirmed — ${params.serviceType} on ${params.startTime}`;
   const htmlBody = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <h2 style="color: #1d4ed8;">Your Appointment is Confirmed</h2>
+      <h2 style="color: #d97706;">Your Appointment is Confirmed</h2>
       <p>Hi ${params.clientName},</p>
       <p>Your appointment has been confirmed. Details:</p>
       <ul>
