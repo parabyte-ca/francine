@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Loader2, FileText, CheckCircle2, XCircle } from "lucide-react";
 import type { Order } from "@/types";
 
-const STATUSES = ["lead", "quote", "scheduled", "in_progress", "completed", "cancelled"] as const;
+const STATUSES = ["quote", "scheduled", "completed", "cancelled"] as const;
 type OrderStatus = typeof STATUSES[number];
 
 interface Props {
