@@ -25,6 +25,7 @@ import {
   getOrder,
   getClient,
   updateOrder,
+  getConfig,
 } from "@/lib/google/sheets";
 import { resolvePrice, calculateInvoiceTotals, PricingError } from "@/lib/pricing-engine";
 import { generateInvoicePdf } from "@/lib/pdf-generator";
@@ -112,36 +113,6 @@ export async function POST(req: NextRequest) {
       })
     );
 
-    // ── Auto-add mileage / parking as flat line items ──────────────────────
-    if (order.mileage_cost > 0) {
-      resolvedItems.push({
-        line_item_id: uuidv4(),
-        invoice_id:   "",
-        service_type: "Mileage",
-        description:  "Mileage reimbursement",
-        quantity:     1,
-        unit:         "flat",
-        unit_price:   order.mileage_cost,
-        total_price:  order.mileage_cost,
-        rate_source:  "manual_override",
-        notes:        "",
-      });
-    }
-    if (order.parking_cost > 0) {
-      resolvedItems.push({
-        line_item_id: uuidv4(),
-        invoice_id:   "",
-        service_type: "Parking",
-        description:  "Parking",
-        quantity:     1,
-        unit:         "flat",
-        unit_price:   order.parking_cost,
-        total_price:  order.parking_cost,
-        rate_source:  "manual_override",
-        notes:        "",
-      });
-    }
-
     // ── Calculate invoice totals ─────────────────────────────────────────────
     const { subtotal, tax_amount, total } = calculateInvoiceTotals(
       resolvedItems.map((i) => i.total_price),
@@ -212,9 +183,11 @@ export async function POST(req: NextRequest) {
     let emailWarning: string | undefined;
     if (requestedStatus === "sent") {
       try {
+        const emailOverride = await getConfig("invoice_email_override");
+        const recipient = emailOverride?.trim() || client.email;
         const buf = pdfBuffer ?? await generateInvoicePdf({ invoice, lineItems: resolvedItems, client });
         await sendInvoiceEmail({
-          to:            client.email,
+          to:            recipient,
           clientName:    client.name,
           invoiceNumber: invoice.invoice_number,
           total:         invoice.total,

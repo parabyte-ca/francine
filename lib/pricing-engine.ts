@@ -77,14 +77,16 @@ export async function resolvePrice(input: PricingInput): Promise<PricingResult> 
     };
   }
 
+  // Session/half-day/full-day rates are flat — quantity represents hours for
+  // display purposes only; it does not multiply the rate.
+  const SESSION_UNITS = new Set<RateUnit>(["session", "half-day", "full-day"]);
+
   // ── Step 2: Client-specific custom rate ───────────────────────────────────
   const customRate = await getCustomRate(client_id, service_type);
   if (customRate) {
-    const total = applyMinimum(
-      quantity,
-      customRate.override_price,
-      customRate.minimum_charge
-    );
+    const total = SESSION_UNITS.has(customRate.unit)
+      ? (customRate.minimum_charge || customRate.override_price)
+      : applyMinimum(quantity, customRate.override_price, customRate.minimum_charge);
     return {
       unit_price: customRate.override_price,
       unit: customRate.unit,
@@ -99,11 +101,9 @@ export async function resolvePrice(input: PricingInput): Promise<PricingResult> 
   // ── Step 3: Standard rate ─────────────────────────────────────────────────
   const standardRate = await getStandardRate(service_type);
   if (standardRate) {
-    const total = applyMinimum(
-      quantity,
-      standardRate.base_price,
-      standardRate.minimum_charge
-    );
+    const total = SESSION_UNITS.has(standardRate.unit)
+      ? (standardRate.minimum_charge || standardRate.base_price)
+      : applyMinimum(quantity, standardRate.base_price, standardRate.minimum_charge);
     return {
       unit_price: standardRate.base_price,
       unit: standardRate.unit,

@@ -66,6 +66,33 @@ export default function SetupPage() {
   const [taxFrom, setTaxFrom] = useState(`${currentYear}-01-01`);
   const [taxTo, setTaxTo] = useState(`${currentYear}-12-31`);
 
+  // Email override state
+  const [emailOverride, setEmailOverride] = useState("");
+  const [emailSaving, setEmailSaving] = useState(false);
+  const [emailSaved, setEmailSaved] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/settings")
+      .then((r) => r.json())
+      .then((j) => setEmailOverride(j.data?.invoice_email_override ?? ""));
+  }, []);
+
+  const saveEmailOverride = async () => {
+    setEmailSaving(true);
+    setEmailSaved(false);
+    try {
+      await fetch("/api/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ invoice_email_override: emailOverride }),
+      });
+      setEmailSaved(true);
+      setTimeout(() => setEmailSaved(false), 3000);
+    } finally {
+      setEmailSaving(false);
+    }
+  };
+
   // Rate management state
   const [rates, setRates] = useState<StandardRate[]>([]);
   const [ratesLoading, setRatesLoading] = useState(false);
@@ -243,6 +270,44 @@ export default function SetupPage() {
       <Topbar title="Settings" subtitle={`Francine CRM v${pkg.version}`} />
       <div className="flex-1 p-4 sm:p-6 overflow-y-auto">
         <div className="max-w-2xl mx-auto space-y-6">
+
+          {/* Email override */}
+          <div className="card space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="p-2.5 rounded-lg bg-brand-50 text-brand-700 flex-shrink-0">
+                <FlaskConical className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="font-semibold text-gray-900">Test Email Override</h2>
+                <p className="text-sm text-gray-600 mt-1">
+                  Redirect all invoice emails to these addresses instead of the client&apos;s email.
+                  Separate multiple addresses with commas. Leave blank to send to the client normally.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                className="input flex-1"
+                placeholder="test@example.com, another@example.com"
+                value={emailOverride}
+                onChange={(e) => setEmailOverride(e.target.value)}
+              />
+              <button
+                onClick={saveEmailOverride}
+                disabled={emailSaving}
+                className="btn-primary whitespace-nowrap"
+              >
+                {emailSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : emailSaved ? <Check className="w-4 h-4" /> : null}
+                {emailSaved ? "Saved" : "Save"}
+              </button>
+            </div>
+            {emailOverride.trim() && (
+              <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                Override active — invoice emails will go to <strong>{emailOverride}</strong>
+              </p>
+            )}
+          </div>
 
           {/* Setup action */}
           <div className="card">
