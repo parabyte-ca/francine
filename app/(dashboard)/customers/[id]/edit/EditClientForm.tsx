@@ -194,7 +194,7 @@ export default function EditClientForm({ client }: { client: Client }) {
       {/* Team contacts */}
       <div>
         <label className="label">Team Contacts</label>
-        <p className="text-xs text-gray-500 mb-2">People at this client's organization involved in bookings.</p>
+        <p className="text-xs text-gray-500 mb-2">People at this client&apos;s organization involved in bookings.</p>
         <div className="space-y-2">
           {contacts.map((c, i) => (
             <div key={i} className="flex items-center gap-2">
