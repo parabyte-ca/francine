@@ -16,7 +16,12 @@ import {
   updateClient,
   getCustomRate,
 } from "@/lib/google/sheets";
-import type { CustomRate, StandardRate } from "@/types";
+import type { CustomRate, RateUnit, StandardRate } from "@/types";
+
+const RATE_UNITS: [RateUnit, ...RateUnit[]] = [
+  "hour", "flat", "per_item", "per_word", "per_minute",
+  "session", "half-day", "full-day", "custom",
+];
 
 export async function GET(req: NextRequest) {
   const session = await auth();
@@ -35,7 +40,7 @@ export async function GET(req: NextRequest) {
 
 const CreateStandardRateSchema = z.object({
   service_type:   z.string().min(1),
-  unit:           z.string().min(1),
+  unit:           z.enum(RATE_UNITS),
   base_price:     z.coerce.number().nonnegative(),
   minimum_charge: z.coerce.number().nonnegative().default(0),
   description:    z.string().default(""),
@@ -44,7 +49,7 @@ const CreateStandardRateSchema = z.object({
 const CreateCustomRateSchema = z.object({
   client_id:      z.string().uuid(),
   service_type:   z.string().min(1),
-  unit:           z.enum(["hour","flat","per_item","per_word","per_minute","session","half-day","full-day","custom"]),
+  unit:           z.enum(RATE_UNITS),
   override_price: z.number().nonnegative(),
   minimum_charge: z.number().nonnegative().default(0),
   notes:          z.string().default(""),

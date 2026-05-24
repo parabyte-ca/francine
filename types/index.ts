@@ -26,7 +26,7 @@ export type AppointmentStatus =
   | "completed"
   | "no_show";
 
-export type RateUnit = "hour" | "flat" | "per_item" | "per_word" | "per_minute";
+export type RateUnit = "hour" | "flat" | "per_item" | "per_word" | "per_minute" | "session" | "half-day" | "full-day" | "custom";
 
 export type RateSource = "standard" | "custom" | "manual_override";
 
