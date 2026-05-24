@@ -102,6 +102,7 @@ function generateClient(): Client {
     has_custom_rates:   false,
     default_tax_exempt: Math.random() < 0.15,
     notes:              "",
+    contacts:           "",
     created_at:         now,
     updated_at:         now,
   };
