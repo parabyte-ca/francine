@@ -156,7 +156,7 @@ const CLIENT_HEADERS: (keyof Client)[] = [
   "client_id", "name", "email", "phone",
   "street", "city", "province", "postal_code",
   "company", "language_pair", "has_custom_rates", "default_tax_exempt",
-  "notes", "created_at", "updated_at", "abbreviation",
+  "notes", "created_at", "updated_at", "abbreviation", "contacts",
 ];
 
 const ORDER_HEADERS: (keyof Order)[] = [

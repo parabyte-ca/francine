@@ -28,6 +28,7 @@ const PatchClientSchema = z.object({
   default_tax_exempt: z.boolean().optional(),
   notes:              z.string().optional(),
   abbreviation:       z.string().max(4).optional(),
+  contacts:           z.string().optional(),
 });
 
 export async function GET(

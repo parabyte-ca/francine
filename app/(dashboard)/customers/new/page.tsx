@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import Link from "next/link";
 import Topbar from "@/components/Topbar";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2, Plus, X } from "lucide-react";
 
 function autoAbbreviation(name: string): string {
   const words = name.trim().split(/\s+/).filter(Boolean);
@@ -37,6 +37,7 @@ export default function NewCustomerPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [abbrManual, setAbbrManual] = useState(false);
+  const [contacts, setContacts] = useState<string[]>([]);
 
   const {
     register,
@@ -62,7 +63,7 @@ export default function NewCustomerPage() {
       const res = await fetch("/api/customers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify({ ...data, contacts: contacts.filter(Boolean).join(", ") }),
       });
       if (!res.ok) {
         const json = await res.json();
@@ -183,6 +184,40 @@ export default function NewCustomerPage() {
             <div>
               <label className="label">Notes</label>
               <textarea {...register("notes")} className="input resize-none" rows={3} />
+            </div>
+
+            {/* Team contacts */}
+            <div>
+              <label className="label">Team Contacts</label>
+              <p className="text-xs text-gray-500 mb-2">People at this client's organization involved in bookings.</p>
+              <div className="space-y-2">
+                {contacts.map((c, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      className="input flex-1"
+                      value={c}
+                      placeholder="Contact name"
+                      onChange={(e) => setContacts((prev) => prev.map((v, idx) => idx === i ? e.target.value : v))}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setContacts((prev) => prev.filter((_, idx) => idx !== i))}
+                      className="text-gray-400 hover:text-red-500 transition-colors"
+                      aria-label="Remove"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setContacts((prev) => [...prev, ""])}
+                  className="flex items-center gap-1.5 text-xs text-brand-600 hover:text-brand-700 font-medium"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Add Contact
+                </button>
+              </div>
             </div>
 
             <div className="flex justify-end gap-3 pt-2">
