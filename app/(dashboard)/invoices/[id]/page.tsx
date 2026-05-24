@@ -97,7 +97,7 @@ export default async function InvoiceDetailPage({ params }: { params: { id: stri
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left border-b text-gray-500">
-                    <th className="pb-2 font-medium pr-4">Service</th>
+                    <th className="pb-2 font-medium pr-4">Interpretation</th>
                     <th className="pb-2 font-medium pr-4">Description</th>
                     <th className="pb-2 font-medium pr-4 text-right">Qty</th>
                     <th className="pb-2 font-medium pr-4 text-right">Unit Price</th>

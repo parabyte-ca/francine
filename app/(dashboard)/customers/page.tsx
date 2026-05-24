@@ -5,7 +5,7 @@ import { listClients } from "@/lib/google/sheets";
 import { Plus, Star } from "lucide-react";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "Customers" };
+export const metadata: Metadata = { title: "Clients" };
 export const revalidate = 60;
 
 async function ClientsGrid() {
@@ -65,7 +65,7 @@ export default function CustomersPage() {
   return (
     <>
       <Topbar
-        title="Customers"
+        title="Clients"
         subtitle="Client database and rate cards"
         actions={
           <Link href="/customers/new" className="btn-primary">

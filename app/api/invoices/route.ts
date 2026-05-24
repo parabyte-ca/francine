@@ -29,6 +29,7 @@ import {
 import { resolvePrice, calculateInvoiceTotals, PricingError } from "@/lib/pricing-engine";
 import { generateInvoicePdf } from "@/lib/pdf-generator";
 import { uploadInvoicePdf } from "@/lib/google/drive";
+import { sendInvoiceEmail } from "@/lib/google/gmail";
 import type { Invoice, InvoiceLineItem } from "@/types";
 
 const LineItemInputSchema = z.object({
@@ -44,6 +45,7 @@ const CreateInvoiceSchema = z.object({
   order_id:   z.string().uuid(),
   due_days:   z.number().int().nonnegative().default(30),
   notes:      z.string().default(""),
+  status:     z.enum(["draft", "sent"]).default("draft"),
   line_items: z.array(LineItemInputSchema).min(1),
 });
 
@@ -70,7 +72,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 422 });
   }
 
-  const { order_id, due_days, notes, line_items } = parsed.data;
+  const { order_id, due_days, notes, status: requestedStatus, line_items } = parsed.data;
   const HST_RATE_PCT = Number(process.env.TAX_RATE_PERCENT ?? 13);
 
   // Fetch order and client
@@ -159,7 +161,7 @@ export async function POST(req: NextRequest) {
       invoice_number:   invoiceNumber,
       order_id,
       client_id:        order.client_id,
-      status:           "draft",
+      status:           requestedStatus,
       issue_date:       issueDate,
       due_date:         dueDate,
       subtotal,
@@ -180,8 +182,9 @@ export async function POST(req: NextRequest) {
     resolvedItems.forEach((item) => { item.invoice_id = invoiceId; });
 
     // ── Generate PDF & upload to Drive (non-fatal) ───────────────────────────
+    let pdfBuffer: Buffer | null = null;
     try {
-      const pdfBuffer = await generateInvoicePdf({
+      pdfBuffer = await generateInvoicePdf({
         invoice,
         lineItems: resolvedItems,
         client,
@@ -205,8 +208,29 @@ export async function POST(req: NextRequest) {
       await updateOrder(order_id, { status: "completed" });
     }
 
+    // ── Send invoice email immediately when status is "sent" (non-fatal) ─────
+    let emailWarning: string | undefined;
+    if (requestedStatus === "sent") {
+      try {
+        const buf = pdfBuffer ?? await generateInvoicePdf({ invoice, lineItems: resolvedItems, client });
+        await sendInvoiceEmail({
+          to:            client.email,
+          clientName:    client.name,
+          invoiceNumber: invoice.invoice_number,
+          total:         invoice.total,
+          dueDate:       invoice.due_date,
+          driveUrl:      invoice.drive_file_url,
+          pdfBuffer:     buf,
+        });
+      } catch (emailErr) {
+        const msg = emailErr instanceof Error ? emailErr.message : String(emailErr);
+        console.error("Invoice email failed:", msg);
+        emailWarning = `Invoice saved, but the email could not be sent: ${msg}`;
+      }
+    }
+
     return NextResponse.json(
-      { data: { invoice, line_items: resolvedItems } },
+      { data: { invoice, line_items: resolvedItems }, ...(emailWarning ? { email_warning: emailWarning } : {}) },
       { status: 201 }
     );
   } catch (err) {

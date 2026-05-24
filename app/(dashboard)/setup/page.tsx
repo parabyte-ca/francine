@@ -539,7 +539,7 @@ export default function SetupPage() {
             <h2 className="font-semibold text-gray-900 mb-2">Quick Links</h2>
             <ul className="space-y-1 text-sm">
               <li><a href="/dashboard" className="text-brand-600 hover:underline">Dashboard</a></li>
-              <li><a href="/customers" className="text-brand-600 hover:underline">Customers</a></li>
+              <li><a href="/customers" className="text-brand-600 hover:underline">Clients</a></li>
               <li><a href="/orders" className="text-brand-600 hover:underline">Events</a></li>
               <li><a href="/invoices" className="text-brand-600 hover:underline">Invoices</a></li>
               <li><a href="/api/health" className="text-brand-600 hover:underline" target="_blank" rel="noopener noreferrer">Health check</a></li>

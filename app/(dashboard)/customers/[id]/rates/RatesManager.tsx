@@ -136,7 +136,7 @@ export default function RatesManager({ clientId, standardRates, customRates }: P
               )}
 
               <div>
-                <label className="label">Service Type</label>
+                <label className="label">Interpretation</label>
                 <input
                   type="text"
                   className="input"
