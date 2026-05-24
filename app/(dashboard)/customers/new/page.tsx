@@ -8,15 +8,7 @@ import { z } from "zod";
 import Link from "next/link";
 import Topbar from "@/components/Topbar";
 import { ArrowLeft, Loader2, Plus, X } from "lucide-react";
-
-function autoAbbreviation(company: string, name: string): string {
-  const src = (company.trim() || name.trim());
-  const words = src.split(/[\s\-]+/).filter(Boolean);
-  if (words.length === 0) return "INV";
-  if (words.length === 1) return words[0].slice(0, 3).toUpperCase();
-  // Short words (≤2 chars, e.g. "TD") contribute all chars; longer words contribute first letter only
-  return words.map(w => w.length <= 2 ? w.toUpperCase() : w[0].toUpperCase()).join("").slice(0, 4);
-}
+import { computeClientAbbr } from "@/lib/invoice-utils";
 
 const schema = z.object({
   name:               z.string().min(1, "Name is required"),
@@ -55,7 +47,7 @@ export default function NewCustomerPage() {
   // Auto-generate abbreviation from company (fallback: name) unless user has overridden it
   useEffect(() => {
     if (!abbrManual && (companyValue || nameValue)) {
-      setValue("abbreviation", autoAbbreviation(companyValue, nameValue));
+      setValue("abbreviation", computeClientAbbr(companyValue, nameValue));
     }
   }, [nameValue, companyValue, abbrManual, setValue]);
 
