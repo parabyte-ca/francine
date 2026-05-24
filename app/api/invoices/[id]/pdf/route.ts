@@ -24,15 +24,21 @@ export async function GET(
   if (!invoice) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   let pdfBuffer: Buffer;
-  if (invoice.drive_file_id) {
-    pdfBuffer = await downloadFile(invoice.drive_file_id);
-  } else {
-    const [client, lineItems] = await Promise.all([
-      getClient(invoice.client_id),
-      listLineItems(invoice.invoice_id),
-    ]);
-    if (!client) return NextResponse.json({ error: "Client not found" }, { status: 404 });
-    pdfBuffer = await generateInvoicePdf({ invoice, lineItems, client });
+  try {
+    if (invoice.drive_file_id) {
+      pdfBuffer = await downloadFile(invoice.drive_file_id);
+    } else {
+      const [client, lineItems] = await Promise.all([
+        getClient(invoice.client_id),
+        listLineItems(invoice.invoice_id),
+      ]);
+      if (!client) return NextResponse.json({ error: "Client not found" }, { status: 404 });
+      pdfBuffer = await generateInvoicePdf({ invoice, lineItems, client });
+    }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`[pdf] Failed for invoice ${params.id} (drive_file_id="${invoice.drive_file_id}"):`, err);
+    return NextResponse.json({ error: `PDF generation failed: ${msg}` }, { status: 500 });
   }
 
   const download = new URL(req.url).searchParams.get("download") === "1";
