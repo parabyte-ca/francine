@@ -16,8 +16,18 @@ export async function GET() {
   const session = await auth();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const invoice_email_override = await getConfig("invoice_email_override") ?? "";
-  return NextResponse.json({ data: { invoice_email_override } });
+  const [invoice_email_override, gmail_refresh_token] = await Promise.all([
+    getConfig("invoice_email_override"),
+    getConfig("gmail_refresh_token"),
+  ]);
+
+  return NextResponse.json({
+    data: {
+      invoice_email_override: invoice_email_override ?? "",
+      gmail_connected: !!(process.env.GMAIL_REFRESH_TOKEN || gmail_refresh_token),
+      resend_configured: !!process.env.RESEND_API_KEY,
+    },
+  });
 }
 
 export async function PATCH(req: NextRequest) {
