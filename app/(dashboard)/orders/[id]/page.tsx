@@ -11,6 +11,7 @@ import {
 import { ArrowLeft, User, Clock, MapPin, FileText, CalendarDays } from "lucide-react";
 import OrderActions from "./OrderActions";
 import type { Metadata } from "next";
+import type { Order } from "@/types";
 
 export const dynamic = "force-dynamic";
 
@@ -58,7 +59,7 @@ export default async function OrderDetailPage({ params }: { params: { id: string
                 </Link>
               )}
             </div>
-            <OrderActions orderId={params.id} status={order.status} hasInvoice={orderInvoices.length > 0} />
+            <OrderActions orderId={params.id} status={order.status} hasInvoice={orderInvoices.length > 0} order={order as Order} />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6 pt-6 border-t text-sm">
@@ -80,8 +81,8 @@ export default async function OrderDetailPage({ params }: { params: { id: string
             <div className="flex items-start gap-2">
               <User className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
               <div>
-                <p className="text-xs text-gray-500">Assigned To</p>
-                <p className="text-gray-900">{order.assigned_to || "Unassigned"}</p>
+                <p className="text-xs text-gray-500">Team</p>
+                <p className="text-gray-900">{order.assigned_to || "—"}</p>
               </div>
             </div>
           </div>

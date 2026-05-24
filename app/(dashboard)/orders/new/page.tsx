@@ -23,13 +23,15 @@ const schema = z.object({
 });
 type FormData = z.infer<typeof schema>;
 
-type ClientOption = { client_id: string; name: string; email: string; company: string };
+type ClientOption = { client_id: string; name: string; email: string; company: string; contacts: string };
 
 export default function NewOrderPage() {
   const router = useRouter();
   const [allClients, setAllClients] = useState<ClientOption[]>([]);
   const [clientSearch, setClientSearch] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
+  const [clientContacts, setClientContacts] = useState<string[]>([]);
+  const [selectedTeam, setSelectedTeam] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -62,6 +64,10 @@ export default function NewOrderPage() {
     setValue("client_id", c.client_id, { shouldValidate: true });
     setClientSearch(`${c.name} — ${c.company || c.email}`);
     setShowDropdown(false);
+    const parsed = c.contacts ? c.contacts.split(",").map((s) => s.trim()).filter(Boolean) : [];
+    setClientContacts(parsed);
+    setSelectedTeam(new Set());
+    setValue("assigned_to", "");
   };
 
   const onSubmit = async (data: FormData) => {
@@ -174,16 +180,40 @@ export default function NewOrderPage() {
               </div>
             </div>
 
-            {/* Location + Assigned to */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="label">Location</label>
-                <input type="text" {...register("location")} className="input" placeholder="Address or 'Remote'" />
-              </div>
-              <div>
-                <label className="label">Assigned To</label>
-                <input type="text" {...register("assigned_to")} className="input" placeholder="Staff name" />
-              </div>
+            {/* Location */}
+            <div>
+              <label className="label">Location</label>
+              <input type="text" {...register("location")} className="input" placeholder="Address or 'Remote'" />
+            </div>
+
+            {/* Team */}
+            <div>
+              <label className="label">Team</label>
+              {clientContacts.length > 0 ? (
+                <div className="space-y-1.5">
+                  {clientContacts.map((name) => (
+                    <label key={name} className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        className="rounded"
+                        checked={selectedTeam.has(name)}
+                        onChange={(e) => {
+                          setSelectedTeam((prev) => {
+                            const next = new Set(prev);
+                            if (e.target.checked) next.add(name); else next.delete(name);
+                            setValue("assigned_to", [...next].join(", "));
+                            return next;
+                          });
+                        }}
+                      />
+                      {name}
+                    </label>
+                  ))}
+                  <input type="hidden" {...register("assigned_to")} />
+                </div>
+              ) : (
+                <input type="text" {...register("assigned_to")} className="input" placeholder="Team member names" />
+              )}
             </div>
 
             {/* Expenses */}

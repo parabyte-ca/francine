@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, FileText, CheckCircle2, XCircle } from "lucide-react";
+import type { Order } from "@/types";
 
 const STATUSES = ["lead", "quote", "scheduled", "in_progress", "completed", "cancelled"] as const;
 type OrderStatus = typeof STATUSES[number];
@@ -11,9 +12,10 @@ interface Props {
   orderId: string;
   status: OrderStatus;
   hasInvoice: boolean;
+  order: Order;
 }
 
-export default function OrderActions({ orderId, status, hasInvoice }: Props) {
+export default function OrderActions({ orderId, status, hasInvoice, order }: Props) {
   const router = useRouter();
   const [currentStatus, setCurrentStatus] = useState<OrderStatus>(status);
   const [saving, setSaving] = useState(false);
@@ -78,7 +80,7 @@ export default function OrderActions({ orderId, status, hasInvoice }: Props) {
 
       {showInvoiceModal && (
         <GenerateInvoiceModal
-          orderId={orderId}
+          order={order}
           onClose={() => setShowInvoiceModal(false)}
           onDone={(invoiceId) => router.push(`/invoices/${invoiceId}`)}
         />
@@ -88,11 +90,11 @@ export default function OrderActions({ orderId, status, hasInvoice }: Props) {
 }
 
 function GenerateInvoiceModal({
-  orderId,
+  order,
   onClose,
   onDone,
 }: {
-  orderId: string;
+  order: Order;
   onClose: () => void;
   onDone: (id: string) => void;
 }) {
@@ -109,10 +111,16 @@ function GenerateInvoiceModal({
   ];
 
   const [items, setItems] = useState([
-    { service_type: "", service_type_custom: "", quantity: 1, manual_override_price: "", description: "" },
+    {
+      service_type: "Interpretation — Consecutive",
+      service_type_custom: "",
+      quantity: order.duration_hours || 1,
+      manual_override_price: "",
+      description: order.description || "",
+    },
   ]);
   const [dueDays, setDueDays] = useState(30);
-  const [notes, setNotes] = useState("");
+  const [notes, setNotes] = useState(order.notes || "");
   const [invoiceStatus, setInvoiceStatus] = useState<"draft" | "sent">("draft");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -151,7 +159,7 @@ function GenerateInvoiceModal({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          order_id: orderId,
+          order_id: order.order_id,
           due_days: dueDays,
           notes,
           status: invoiceStatus,
@@ -181,6 +189,19 @@ function GenerateInvoiceModal({
             <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
               <XCircle className="w-5 h-5" />
             </button>
+          </div>
+
+          <div className="p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-600">
+            Pre-filled from event details — edit as needed.
+            {(order.mileage_cost > 0 || order.parking_cost > 0) && (
+              <span className="block mt-0.5 text-gray-500">
+                Auto-added:{" "}
+                {[
+                  order.mileage_cost > 0 && `Mileage $${order.mileage_cost.toFixed(2)}`,
+                  order.parking_cost > 0 && `Parking $${order.parking_cost.toFixed(2)}`,
+                ].filter(Boolean).join(" · ")}
+              </span>
+            )}
           </div>
 
           {error && (

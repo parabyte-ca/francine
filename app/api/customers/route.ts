@@ -30,6 +30,7 @@ const CreateClientSchema = z.object({
   default_tax_exempt:  z.boolean().default(false),
   notes:               z.string().default(""),
   abbreviation:        z.string().max(4).default(""),
+  contacts:            z.string().default(""),
 });
 
 export async function GET(req: NextRequest) {
@@ -65,8 +66,9 @@ export async function POST(req: NextRequest) {
   const now = new Date().toISOString();
   const abbr = parsed.data.abbreviation.trim() || autoAbbreviation(parsed.data.name);
   const client: Client = {
-    client_id:      uuidv4(),
+    client_id:        uuidv4(),
     has_custom_rates: false,
+    contacts:         "",
     ...parsed.data,
     abbreviation: abbr.toUpperCase().slice(0, 4),
     created_at: now,

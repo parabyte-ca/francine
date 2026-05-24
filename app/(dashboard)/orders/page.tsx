@@ -30,7 +30,7 @@ async function OrdersTable({ status }: { status?: string }) {
             <th className="pb-3 font-medium text-gray-500 pr-4">Client</th>
             <th className="pb-3 font-medium text-gray-500 pr-4">Interpretation</th>
             <th className="pb-3 font-medium text-gray-500 pr-4">Requested</th>
-            <th className="pb-3 font-medium text-gray-500 pr-4">Assigned</th>
+            <th className="pb-3 font-medium text-gray-500 pr-4">Team</th>
             <th className="pb-3 font-medium text-gray-500 pr-4">Status</th>
             <th className="pb-3 font-medium text-gray-500"></th>
           </tr>

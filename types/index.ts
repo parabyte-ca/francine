@@ -59,6 +59,7 @@ export interface Client {
   created_at: string;         // ISO-8601
   updated_at: string;
   abbreviation: string;       // 2-char invoice prefix, e.g. "HL" for "High Life"
+  contacts: string;            // comma-separated list of contacts at the client org
 }
 
 // ---------------------------------------------------------------------------
