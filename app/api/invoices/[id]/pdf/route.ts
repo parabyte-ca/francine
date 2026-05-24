@@ -38,7 +38,7 @@ export async function GET(
   const download = new URL(req.url).searchParams.get("download") === "1";
   const filename = `${invoice.invoice_number}.pdf`;
 
-  return new NextResponse(pdfBuffer, {
+  return new NextResponse(new Uint8Array(pdfBuffer), {
     headers: {
       "Content-Type": "application/pdf",
       "Content-Disposition": `${download ? "attachment" : "inline"}; filename="${filename}"`,
