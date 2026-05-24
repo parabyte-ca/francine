@@ -281,44 +281,6 @@ export default function SetupPage() {
       <div className="flex-1 p-4 sm:p-6 overflow-y-auto">
         <div className="max-w-2xl mx-auto space-y-6">
 
-          {/* Email override */}
-          <div className="card space-y-4">
-            <div className="flex items-start gap-3">
-              <div className="p-2.5 rounded-lg bg-brand-50 text-brand-700 flex-shrink-0">
-                <FlaskConical className="w-5 h-5" />
-              </div>
-              <div>
-                <h2 className="font-semibold text-gray-900">Test Email Override</h2>
-                <p className="text-sm text-gray-600 mt-1">
-                  Redirect all invoice emails to these addresses instead of the client&apos;s email.
-                  Separate multiple addresses with commas. Leave blank to send to the client normally.
-                </p>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                className="input flex-1"
-                placeholder="test@example.com, another@example.com"
-                value={emailOverride}
-                onChange={(e) => setEmailOverride(e.target.value)}
-              />
-              <button
-                onClick={saveEmailOverride}
-                disabled={emailSaving}
-                className="btn-primary whitespace-nowrap"
-              >
-                {emailSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : emailSaved ? <Check className="w-4 h-4" /> : null}
-                {emailSaved ? "Saved" : "Save"}
-              </button>
-            </div>
-            {emailOverride.trim() && (
-              <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-                Override active — invoice emails will go to <strong>{emailOverride}</strong>
-              </p>
-            )}
-          </div>
-
           {/* Email provider */}
           <div className="card space-y-4">
             <div className="flex items-start gap-3">
@@ -727,6 +689,37 @@ export default function SetupPage() {
             </div>
 
             <div className="space-y-4">
+              {/* Test email override */}
+              <div className="p-4 bg-white rounded-lg border border-amber-200">
+                <p className="text-sm font-medium text-gray-900 mb-1">Test Email Override</p>
+                <p className="text-xs text-gray-500 mb-3">
+                  Redirect all invoice emails to these addresses instead of the client&apos;s email.
+                  Separate multiple with commas. Leave blank to use the client email.
+                </p>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    className="input flex-1 text-sm"
+                    placeholder="test@example.com, another@example.com"
+                    value={emailOverride}
+                    onChange={(e) => setEmailOverride(e.target.value)}
+                  />
+                  <button
+                    onClick={saveEmailOverride}
+                    disabled={emailSaving}
+                    className="btn-primary text-xs py-1.5 whitespace-nowrap"
+                  >
+                    {emailSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : emailSaved ? <Check className="w-3.5 h-3.5" /> : null}
+                    {emailSaved ? "Saved" : "Save"}
+                  </button>
+                </div>
+                {emailOverride.trim() && (
+                  <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-2">
+                    Override active — emails will go to <strong>{emailOverride}</strong>
+                  </p>
+                )}
+              </div>
+
               {/* Seed fake client */}
               <div className="p-4 bg-white rounded-lg border border-amber-200">
                 <div className="flex items-start justify-between gap-4 flex-wrap">

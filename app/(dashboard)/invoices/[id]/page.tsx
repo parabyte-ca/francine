@@ -4,6 +4,7 @@ import Topbar from "@/components/Topbar";
 import StatusBadge from "@/components/StatusBadge";
 import { getInvoice, getClient, listLineItems, getOrder } from "@/lib/google/sheets";
 import { ArrowLeft, FileText, ExternalLink, Download } from "lucide-react";
+import { formatDuration } from "@/lib/invoice-utils";
 import InvoiceActions from "./InvoiceActions";
 import type { Metadata } from "next";
 
@@ -99,7 +100,7 @@ export default async function InvoiceDetailPage({ params }: { params: { id: stri
                   <tr className="text-left border-b text-gray-500">
                     <th className="pb-2 font-medium pr-4">Interpretation</th>
                     <th className="pb-2 font-medium pr-4">Description</th>
-                    <th className="pb-2 font-medium pr-4 text-right">Qty</th>
+                    <th className="pb-2 font-medium pr-4 text-right">Duration</th>
                     <th className="pb-2 font-medium pr-4 text-right">Unit Price</th>
                     <th className="pb-2 font-medium text-right">Total</th>
                   </tr>
@@ -109,7 +110,7 @@ export default async function InvoiceDetailPage({ params }: { params: { id: stri
                     <tr key={item.line_item_id} className="border-b last:border-0">
                       <td className="py-2 pr-4 text-gray-800">{item.service_type}</td>
                       <td className="py-2 pr-4 text-gray-600">{item.description}</td>
-                      <td className="py-2 pr-4 text-right">{item.quantity} {item.unit}</td>
+                      <td className="py-2 pr-4 text-right">{formatDuration(item)}</td>
                       <td className="py-2 pr-4 text-right">${item.unit_price.toFixed(2)}</td>
                       <td className="py-2 text-right font-medium">${item.total_price.toFixed(2)}</td>
                     </tr>
