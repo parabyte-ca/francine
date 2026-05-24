@@ -20,7 +20,7 @@ import {
 const NAV_ITEMS = [
   { href: "/dashboard",   label: "Dashboard",  icon: LayoutDashboard },
   { href: "/orders",      label: "Events",     icon: ClipboardList },
-  { href: "/customers",   label: "Customers",  icon: Users },
+  { href: "/customers",   label: "Clients",    icon: Users },
   { href: "/scheduling",  label: "Scheduling", icon: CalendarDays },
   { href: "/invoices",    label: "Invoices",   icon: FileText },
   { href: "/payments",    label: "Payments",   icon: CreditCard },

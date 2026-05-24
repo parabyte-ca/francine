@@ -93,7 +93,7 @@ export default function NewOrderPage() {
     <>
       <Topbar
         title="New Event"
-        subtitle="Capture a new service request"
+        subtitle="Capture a new interpretation event"
         actions={
           <Link href="/orders" className="btn-ghost">
             <ArrowLeft className="w-4 h-4" /><span className="hidden sm:inline">Back</span>
@@ -146,7 +146,7 @@ export default function NewOrderPage() {
 
             {/* Service type (fixed) */}
             <div>
-              <label className="label">Service Type</label>
+              <label className="label">Interpretation</label>
               <p className="input bg-gray-50 text-gray-600 cursor-default select-none">{ASL_SERVICE_TYPE}</p>
             </div>
 

@@ -113,6 +113,7 @@ function GenerateInvoiceModal({
   ]);
   const [dueDays, setDueDays] = useState(30);
   const [notes, setNotes] = useState("");
+  const [invoiceStatus, setInvoiceStatus] = useState<"draft" | "sent">("draft");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -153,6 +154,7 @@ function GenerateInvoiceModal({
           order_id: orderId,
           due_days: dueDays,
           notes,
+          status: invoiceStatus,
           line_items,
         }),
       });
@@ -276,11 +278,42 @@ function GenerateInvoiceModal({
             </div>
           </div>
 
+          {/* Draft / Send toggle */}
+          <div className="flex gap-2 p-1 bg-gray-100 rounded-lg">
+            <button
+              type="button"
+              onClick={() => setInvoiceStatus("draft")}
+              className={`flex-1 py-2 text-sm rounded-md font-medium transition-colors ${
+                invoiceStatus === "draft"
+                  ? "bg-white text-gray-900 shadow-sm"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              Save as Draft
+            </button>
+            <button
+              type="button"
+              onClick={() => setInvoiceStatus("sent")}
+              className={`flex-1 py-2 text-sm rounded-md font-medium transition-colors ${
+                invoiceStatus === "sent"
+                  ? "bg-white text-gray-900 shadow-sm"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              Generate &amp; Send
+            </button>
+          </div>
+          {invoiceStatus === "sent" && (
+            <p className="text-xs text-blue-600">
+              The invoice PDF will be emailed to the client immediately.
+            </p>
+          )}
+
           <div className="flex justify-end gap-3 pt-2">
             <button onClick={onClose} className="btn-secondary">Cancel</button>
             <button onClick={submit} disabled={loading} className="btn-primary">
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-              Generate
+              {invoiceStatus === "sent" ? "Generate & Send" : "Save Draft"}
             </button>
           </div>
         </div>

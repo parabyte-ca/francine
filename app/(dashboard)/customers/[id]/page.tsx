@@ -16,7 +16,7 @@ export const revalidate = 60;
 
 export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
   const client = await getClient(params.id);
-  return { title: client ? `${client.name} — Customer 360` : "Customer" };
+  return { title: client ? `${client.name} — Client 360` : "Client" };
 }
 
 export default async function CustomerDetailPage({ params }: { params: { id: string } }) {
@@ -41,7 +41,7 @@ export default async function CustomerDetailPage({ params }: { params: { id: str
     <>
       <Topbar
         title={client.name}
-        subtitle="Customer 360 View"
+        subtitle="Client 360 View"
         actions={
           <Link href="/customers" className="btn-ghost">
             <ArrowLeft className="w-4 h-4" /> Back
@@ -136,7 +136,7 @@ export default async function CustomerDetailPage({ params }: { params: { id: str
           {/* Service history */}
           <div className="card">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-gray-900">Service History</h3>
+              <h3 className="font-semibold text-gray-900">Interpretation History</h3>
               <Link href={`/orders/new?client_id=${params.id}`} className="btn-primary text-xs py-1.5">
                 + New Order
               </Link>
