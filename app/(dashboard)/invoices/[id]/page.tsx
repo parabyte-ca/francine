@@ -47,9 +47,14 @@ export default async function InvoiceDetailPage({ params }: { params: { id: stri
                 <StatusBadge status={invoice.status} />
               </div>
               {client && (
-                <Link href={`/customers/${client.client_id}`} className="text-sm text-brand-600 hover:underline mt-1 inline-block">
-                  {client.name}
-                </Link>
+                <div className="mt-1">
+                  {client.company && (
+                    <p className="text-sm font-medium text-gray-800">{client.company}</p>
+                  )}
+                  <Link href={`/customers/${client.client_id}`} className="text-xs text-brand-600 hover:underline">
+                    {client.name}
+                  </Link>
+                </div>
               )}
               {order && (
                 <div className="mt-1">

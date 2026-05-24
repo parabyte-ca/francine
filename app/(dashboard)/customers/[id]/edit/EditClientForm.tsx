@@ -9,9 +9,10 @@ import Link from "next/link";
 import { Loader2, Plus, X } from "lucide-react";
 import type { Client } from "@/types";
 
-function autoAbbreviation(name: string): string {
-  const words = name.trim().split(/\s+/).filter(Boolean);
-  if (words.length >= 2) return (words[0][0] + words[1][0]).toUpperCase();
+function autoAbbreviation(company: string, name: string): string {
+  const src = (company.trim() || name.trim());
+  const words = src.split(/[\s\-]+/).filter(Boolean);
+  if (words.length >= 2) return words.map(w => w[0]).join("").toUpperCase().slice(0, 4);
   if (words[0]?.length >= 2) return words[0].slice(0, 2).toUpperCase();
   return (words[0] || "XX").toUpperCase().padEnd(2, "X").slice(0, 2);
 }
@@ -61,17 +62,18 @@ export default function EditClientForm({ client }: { client: Client }) {
       language_pair:      client.language_pair ?? "",
       default_tax_exempt: client.default_tax_exempt,
       notes:              client.notes,
-      abbreviation:       client.abbreviation || autoAbbreviation(client.name),
+      abbreviation:       client.abbreviation || autoAbbreviation(client.company || "", client.name),
     },
   });
 
-  const nameValue = watch("name", client.name);
+  const nameValue    = watch("name",    client.name);
+  const companyValue = watch("company", client.company || "");
 
   useEffect(() => {
     if (!abbrManual) {
-      setValue("abbreviation", autoAbbreviation(nameValue));
+      setValue("abbreviation", autoAbbreviation(companyValue, nameValue));
     }
-  }, [nameValue, abbrManual, setValue]);
+  }, [nameValue, companyValue, abbrManual, setValue]);
 
   const onSubmit = async (data: FormData) => {
     setLoading(true);
@@ -106,7 +108,7 @@ export default function EditClientForm({ client }: { client: Client }) {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label className="label">Name *</label>
+          <label className="label">Primary Contact *</label>
           <input type="text" {...register("name")} className="input" />
           {errors.name && <p className="text-xs text-red-600 mt-1">{errors.name.message}</p>}
         </div>
@@ -120,7 +122,7 @@ export default function EditClientForm({ client }: { client: Client }) {
         <div>
           <label className="label">
             Abbreviation
-            <span className="ml-1 text-xs font-normal text-gray-400">(used in invoice numbers, e.g. HL)</span>
+            <span className="ml-1 text-xs font-normal text-gray-400">(based on company name, used in invoice numbers, e.g. GWL)</span>
           </label>
           <input
             type="text"
