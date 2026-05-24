@@ -190,6 +190,10 @@ export function formatRateUnit(unit: RateUnit): string {
     per_item: "/ item",
     per_word: "/ word",
     per_minute: "/ min",
+    session: "session",
+    "half-day": "half-day",
+    "full-day": "full-day",
+    custom: "custom",
   };
   return map[unit] ?? unit;
 }
