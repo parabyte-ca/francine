@@ -191,24 +191,25 @@ export async function generateInvoicePdf(params: {
 function drawText(
   page: PDFPage,
   font: PDFFont,
-  text: string,
+  text: string | number | null | undefined,
   x: number,
   y: number,
   size: number,
   options?: { color?: ReturnType<typeof rgb>; align?: "left" | "center" | "right" }
 ): void {
+  const str   = String(text ?? "");
   const color = options?.color ?? TEXT_DARK;
   let drawX = x;
 
   if (options?.align === "center") {
-    const w = font.widthOfTextAtSize(text, size);
+    const w = font.widthOfTextAtSize(str, size);
     drawX = x - w / 2;
   } else if (options?.align === "right") {
-    const w = font.widthOfTextAtSize(text, size);
+    const w = font.widthOfTextAtSize(str, size);
     drawX = x - w;
   }
 
-  page.drawText(text, { x: drawX, y, size, font, color });
+  page.drawText(str, { x: drawX, y, size, font, color });
 }
 
 function drawHRule(page: PDFPage, y: number, thickness = 0.75): void {
