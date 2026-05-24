@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Calendar, dateFnsLocalizer, Views } from "react-big-calendar";
 import { format, parse, startOfWeek, getDay, addDays } from "date-fns";
 import { enCA } from "date-fns/locale";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import Topbar from "@/components/Topbar";
-import { Loader2, X, MapPin, Video, Clock, User, FileText, Plus } from "lucide-react";
+import { Loader2, X, MapPin, Video, Clock, User, FileText, Plus, AlertTriangle, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import type { Appointment, Client, Order } from "@/types";
 
@@ -52,6 +52,12 @@ export default function SchedulingPage() {
   const [manualDate, setManualDate] = useState("");
   const [manualStart, setManualStart] = useState("09:00");
   const [manualEnd, setManualEnd] = useState("10:00");
+
+  // Real-time conflict check for booking modal
+  const [conflict, setConflict] = useState<{ checking: boolean; detected: boolean }>({
+    checking: false, detected: false,
+  });
+  const conflictTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Appointment detail modal
   const [detailAppt, setDetailAppt] = useState<Appointment | null>(null);
@@ -111,6 +117,40 @@ export default function SchedulingPage() {
     fetchAppointments(currentDate);
   }, [currentDate, fetchAppointments]);
 
+  // Debounced conflict check — runs whenever modal date/time changes
+  useEffect(() => {
+    if (!bookModal) {
+      setConflict({ checking: false, detected: false });
+      return;
+    }
+    if (!manualDate || !manualStart || !manualEnd) {
+      setConflict({ checking: false, detected: false });
+      return;
+    }
+    const start = new Date(`${manualDate}T${manualStart}`);
+    const end   = new Date(`${manualDate}T${manualEnd}`);
+    if (isNaN(start.getTime()) || isNaN(end.getTime()) || end <= start) {
+      setConflict({ checking: false, detected: false });
+      return;
+    }
+    setConflict({ checking: true, detected: false });
+    if (conflictTimerRef.current) clearTimeout(conflictTimerRef.current);
+    conflictTimerRef.current = setTimeout(async () => {
+      try {
+        const res  = await fetch(
+          `/api/scheduling/check-conflict?start=${start.toISOString()}&end=${end.toISOString()}`
+        );
+        const json = await res.json();
+        setConflict({ checking: false, detected: json.conflict ?? false });
+      } catch {
+        setConflict({ checking: false, detected: false });
+      }
+    }, 600);
+    return () => {
+      if (conflictTimerRef.current) clearTimeout(conflictTimerRef.current);
+    };
+  }, [bookModal, manualDate, manualStart, manualEnd]);
+
   function buildTitle(a: Appointment, cm: Record<string, Client>, om: Record<string, Order>): string {
     const clientName = cm[a.client_id]?.name;
     const serviceType = om[a.order_id]?.service_type;
@@ -137,6 +177,7 @@ export default function SchedulingPage() {
     setSelectedSlot(null);
     setBookForm({ order_id: "", location: "", meeting_link: "", notes: "" });
     setBookError(null);
+    setConflict({ checking: false, detected: false });
     setBookModal(true);
   };
 
@@ -311,9 +352,37 @@ export default function SchedulingPage() {
                 </div>
               </div>
 
+              {/* Conflict indicator */}
+              {conflict.checking && (
+                <div className="flex items-center gap-2 text-xs text-gray-500">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" /> Checking calendar…
+                </div>
+              )}
+              {!conflict.checking && conflict.detected && (
+                <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+                  <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="font-medium">Calendar conflict detected</p>
+                    <p className="text-xs mt-0.5">Another appointment overlaps this time slot. You can still book — the conflict will be noted.</p>
+                  </div>
+                </div>
+              )}
+              {!conflict.checking && !conflict.detected && manualDate && manualStart && manualEnd && (
+                <div className="flex items-center gap-2 text-xs text-green-600">
+                  <CheckCircle2 className="w-3.5 h-3.5" /> Time slot is available
+                </div>
+              )}
+
               {bookError && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
-                  {bookError}
+                <div className={`p-3 rounded-lg text-sm flex items-start gap-2 ${
+                  bookError.toLowerCase().includes("conflict")
+                    ? "bg-amber-50 border border-amber-200 text-amber-800"
+                    : "bg-red-50 border border-red-200 text-red-700"
+                }`}>
+                  {bookError.toLowerCase().includes("conflict") && (
+                    <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                  )}
+                  <span>{bookError}</span>
                 </div>
               )}
 
