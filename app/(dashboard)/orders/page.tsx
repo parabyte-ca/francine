@@ -83,7 +83,7 @@ export default function OrdersPage({
 }: {
   searchParams: { status?: string };
 }) {
-  const statuses = ["all", "lead", "quote", "scheduled", "in_progress", "completed", "cancelled"];
+  const statuses = ["all", "quote", "scheduled", "completed", "cancelled"];
 
   return (
     <>
@@ -109,7 +109,7 @@ export default function OrdersPage({
                   : "text-gray-500 hover:text-gray-900"
               }`}
             >
-              {s === "in_progress" ? "In Progress" : s}
+              {s}
             </Link>
           ))}
         </div>

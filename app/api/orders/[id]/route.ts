@@ -9,7 +9,7 @@ import { auth } from "@/lib/auth";
 import { getOrder, updateOrder } from "@/lib/google/sheets";
 
 const PatchOrderSchema = z.object({
-  status:           z.enum(["lead","quote","scheduled","in_progress","completed","cancelled"]).optional(),
+  status:           z.enum(["quote","scheduled","completed","cancelled"]).optional(),
   description:      z.string().optional(),
   scheduled_date:   z.string().optional(),
   duration_hours:   z.coerce.number().positive().optional(),

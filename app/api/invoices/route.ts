@@ -174,7 +174,7 @@ export async function POST(req: NextRequest) {
     await Promise.all(resolvedItems.map((item) => appendLineItem(item)));
 
     // ── Advance order to completed ───────────────────────────────────────────
-    if (order.status === "in_progress" || order.status === "scheduled") {
+    if (order.status === "scheduled") {
       await updateOrder(order_id, { status: "completed" });
     }
 

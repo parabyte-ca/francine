@@ -5,10 +5,8 @@ type AnyStatus = OrderStatus | InvoiceStatus | AppointmentStatus;
 
 const STATUS_MAP: Record<string, string> = {
   // Order statuses
-  lead:        "badge-gray",
   quote:       "badge-yellow",
   scheduled:   "badge-blue",
-  in_progress: "badge-blue",
   completed:   "badge-green",
   cancelled:   "badge-red",
   // Invoice statuses
@@ -23,8 +21,7 @@ const STATUS_MAP: Record<string, string> = {
 };
 
 const LABELS: Record<string, string> = {
-  in_progress: "In Progress",
-  no_show:     "No Show",
+  no_show: "No Show",
 };
 
 export default function StatusBadge({ status }: { status: AnyStatus }) {

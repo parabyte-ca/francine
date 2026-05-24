@@ -12,9 +12,10 @@ import type { Client } from "@/types";
 function autoAbbreviation(company: string, name: string): string {
   const src = (company.trim() || name.trim());
   const words = src.split(/[\s\-]+/).filter(Boolean);
-  if (words.length >= 2) return words.map(w => w[0]).join("").toUpperCase().slice(0, 4);
-  if (words[0]?.length >= 2) return words[0].slice(0, 2).toUpperCase();
-  return (words[0] || "XX").toUpperCase().padEnd(2, "X").slice(0, 2);
+  if (words.length === 0) return "INV";
+  if (words.length === 1) return words[0].slice(0, 3).toUpperCase();
+  // Short words (≤2 chars, e.g. "TD") contribute all chars; longer words contribute first letter only
+  return words.map(w => w.length <= 2 ? w.toUpperCase() : w[0].toUpperCase()).join("").slice(0, 4);
 }
 
 const schema = z.object({
@@ -37,7 +38,7 @@ export default function EditClientForm({ client }: { client: Client }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [abbrManual, setAbbrManual] = useState(!!client.abbreviation);
+  const [abbrManual, setAbbrManual] = useState(false);
   const [contacts, setContacts] = useState<string[]>(
     client.contacts ? client.contacts.split(",").map((s) => s.trim()).filter(Boolean) : []
   );

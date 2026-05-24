@@ -10,10 +10,8 @@
 // ---------------------------------------------------------------------------
 
 export type OrderStatus =
-  | "lead"
   | "quote"
   | "scheduled"
-  | "in_progress"
   | "completed"
   | "cancelled";
 

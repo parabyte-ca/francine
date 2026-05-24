@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
   const now = new Date().toISOString();
   const order: Order = {
     order_id:          uuidv4(),
-    status:            "lead",
+    status:            "quote",
     scheduled_date:    "",
     calendar_event_id: "",
     quote_amount:      0,

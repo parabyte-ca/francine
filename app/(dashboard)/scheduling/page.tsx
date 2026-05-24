@@ -67,7 +67,7 @@ export default function SchedulingPage() {
 
   // Bookable orders (lead / quote / scheduled)
   const bookableOrders = Object.values(orderMap).filter((o) =>
-    ["lead", "quote", "scheduled"].includes(o.status)
+    ["quote", "scheduled"].includes(o.status)
   );
 
   const fetchAppointments = useCallback(async (date: Date) => {
