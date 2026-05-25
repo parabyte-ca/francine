@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
 import Topbar from "@/components/Topbar";
 import {
   Loader2, Settings as SettingsIcon, CheckCircle2, AlertCircle,
@@ -49,8 +48,17 @@ type NewRate = {
   description: string;
 };
 
+type SessionUser = { name?: string | null; email?: string | null; image?: string | null };
+
 export default function SetupPage() {
-  const { data: session } = useSession();
+  const [sessionUser, setSessionUser] = useState<SessionUser | null>(null);
+
+  useEffect(() => {
+    fetch("/api/auth/session")
+      .then((r) => r.json())
+      .then((d) => setSessionUser(d?.user ?? null))
+      .catch(() => {});
+  }, []);
 
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<SetupResult | null>(null);
@@ -296,24 +304,24 @@ export default function SetupPage() {
               </div>
             </div>
 
-            {session?.user ? (
+            {sessionUser ? (
               <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
                 <div className="flex items-center gap-3">
-                  {session.user.image ? (
+                  {sessionUser.image ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={session.user.image}
-                      alt={session.user.name ?? ""}
+                      src={sessionUser.image}
+                      alt={sessionUser.name ?? ""}
                       className="w-9 h-9 rounded-full"
                     />
                   ) : (
                     <div className="w-9 h-9 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center text-sm font-bold">
-                      {(session.user.name ?? "?")[0].toUpperCase()}
+                      {(sessionUser.name ?? "?")[0].toUpperCase()}
                     </div>
                   )}
                   <div>
-                    <p className="text-sm font-medium text-gray-900">{session.user.name}</p>
-                    <p className="text-xs text-gray-500">{session.user.email}</p>
+                    <p className="text-sm font-medium text-gray-900">{sessionUser.name}</p>
+                    <p className="text-xs text-gray-500">{sessionUser.email}</p>
                   </div>
                 </div>
                 <span className="flex items-center gap-1.5 text-xs text-green-700 font-medium">
