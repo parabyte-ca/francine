@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import Topbar from "@/components/Topbar";
 import {
   Loader2, Settings as SettingsIcon, CheckCircle2, AlertCircle,
   RefreshCw, Trash2, UserPlus, FlaskConical, FileDown, BarChart3,
-  Database, DollarSign, Pencil, Plus, X, Check,
+  Database, DollarSign, Pencil, Plus, X, Check, User,
 } from "lucide-react";
 import pkg from "@/package.json";
 
@@ -49,6 +50,8 @@ type NewRate = {
 };
 
 export default function SetupPage() {
+  const { data: session } = useSession();
+
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<SetupResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -280,6 +283,49 @@ export default function SetupPage() {
       <Topbar title="Settings" subtitle={`Francine CRM v${pkg.version}`} />
       <div className="flex-1 p-4 sm:p-6 overflow-y-auto">
         <div className="max-w-2xl mx-auto space-y-6">
+
+          {/* Active session */}
+          <div className="card space-y-3">
+            <div className="flex items-start gap-3">
+              <div className="p-2.5 rounded-lg bg-brand-50 text-brand-700 flex-shrink-0">
+                <User className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="font-semibold text-gray-900">Active Session</h2>
+                <p className="text-sm text-gray-600 mt-1">Users currently signed in to this CRM.</p>
+              </div>
+            </div>
+
+            {session?.user ? (
+              <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex items-center gap-3">
+                  {session.user.image ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={session.user.image}
+                      alt={session.user.name ?? ""}
+                      className="w-9 h-9 rounded-full"
+                    />
+                  ) : (
+                    <div className="w-9 h-9 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center text-sm font-bold">
+                      {(session.user.name ?? "?")[0].toUpperCase()}
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">{session.user.name}</p>
+                    <p className="text-xs text-gray-500">{session.user.email}</p>
+                  </div>
+                </div>
+                <span className="flex items-center gap-1.5 text-xs text-green-700 font-medium">
+                  <CheckCircle2 className="w-3.5 h-3.5" /> 1 user active
+                </span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 text-sm text-gray-500 p-3 bg-gray-50 rounded-lg">
+                <Loader2 className="w-4 h-4 animate-spin" /> Loading session…
+              </div>
+            )}
+          </div>
 
           {/* Email provider */}
           <div className="card space-y-4">
