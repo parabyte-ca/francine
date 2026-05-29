@@ -22,7 +22,7 @@ services:
     container_name: francine
     restart: unless-stopped
     ports:
-      - "3002:3002"
+      - "127.0.0.1:3002:3002"
     env_file:
       # Contains all server-side secrets (Google keys, NextAuth secret, etc.)
       # Copy .env.example → .env.local and fill in before running.

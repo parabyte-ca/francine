@@ -9,7 +9,7 @@ import { auth } from "@/lib/auth";
 import { getConfig, setConfig } from "@/lib/google/sheets";
 
 const PatchSettingsSchema = z.object({
-  invoice_email_override: z.string().optional(),
+  invoice_email_override: z.union([z.string().email(), z.literal("")]).optional(),
 });
 
 export async function GET() {
