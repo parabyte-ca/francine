@@ -21,6 +21,7 @@
  *   - Booleans are stored as "TRUE" / "FALSE" strings (Sheets convention).
  */
 
+import { cache } from "react";
 import { google, sheets_v4 } from "googleapis";
 import { getServiceAccountAuth } from "./auth";
 import type {
@@ -48,6 +49,16 @@ const SHEET_ID = () => {
   return id;
 };
 
+// Fields that should be coerced to numbers. Explicit allowlist avoids silently
+// converting phone numbers, postal codes, IDs, or any other string that happens
+// to be numeric.
+const NUMERIC_FIELDS = new Set([
+  "duration_hours", "quote_amount", "mileage_cost", "parking_cost",
+  "base_price", "minimum_charge", "override_price",
+  "quantity", "unit_price", "total_price",
+  "subtotal", "tax_rate", "tax_amount", "total", "amount_paid",
+]);
+
 /** Convert a raw Sheets row (string[]) into a typed object using a header map */
 function rowToObject<T>(
   headers: string[],
@@ -56,11 +67,9 @@ function rowToObject<T>(
   const obj: Record<string, unknown> = {};
   headers.forEach((h, i) => {
     const val = row[i] ?? "";
-    // Coerce booleans
     if (val === "TRUE") obj[h] = true;
     else if (val === "FALSE") obj[h] = false;
-    // Coerce numbers for known numeric fields
-    else if (!isNaN(Number(val)) && val !== "") obj[h] = Number(val);
+    else if (NUMERIC_FIELDS.has(h) && val !== "" && !isNaN(Number(val))) obj[h] = Number(val);
     else obj[h] = val;
   });
   return obj as T;
@@ -196,11 +205,25 @@ const LINE_ITEM_HEADERS: (keyof InvoiceLineItem)[] = [
 ];
 
 // ---------------------------------------------------------------------------
+// Per-request memoized raw reads
+// React.cache() deduplicates identical sheet reads within a single request,
+// so N callers within the same render/route each pay for only 1 API round-trip.
+// ---------------------------------------------------------------------------
+
+const readClientRows      = cache(() => readSheet<Client>("Clients", CLIENT_HEADERS as string[]));
+const readOrderRows       = cache(() => readSheet<Order>("Orders", ORDER_HEADERS as string[]));
+const readStandardRateRows = cache(() => readSheet<StandardRate>("Standard_Rates", STANDARD_RATE_HEADERS as string[]));
+const readCustomRateRows  = cache(() => readSheet<CustomRate>("Custom_Rates", CUSTOM_RATE_HEADERS as string[]));
+const readAppointmentRows = cache(() => readSheet<Appointment>("Appointments", APPOINTMENT_HEADERS as string[]));
+const readInvoiceRows     = cache(() => readSheet<Invoice>("Invoices", INVOICE_HEADERS as string[]));
+const readLineItemRows    = cache(() => readSheet<InvoiceLineItem>("Invoice_Line_Items", LINE_ITEM_HEADERS as string[]));
+
+// ---------------------------------------------------------------------------
 // Public API: Clients
 // ---------------------------------------------------------------------------
 
 export async function listClients(): Promise<Client[]> {
-  return readSheet<Client>("Clients", CLIENT_HEADERS as string[]);
+  return readClientRows();
 }
 
 export async function getClient(client_id: string): Promise<Client | null> {
@@ -224,7 +247,7 @@ export async function updateClient(
 // ---------------------------------------------------------------------------
 
 export async function listOrders(filters?: { client_id?: string; status?: string }): Promise<Order[]> {
-  let orders = await readSheet<Order>("Orders", ORDER_HEADERS as string[]);
+  let orders = await readOrderRows();
   if (filters?.client_id) orders = orders.filter((o) => o.client_id === filters.client_id);
   if (filters?.status) orders = orders.filter((o) => o.status === filters.status);
   return orders;
@@ -254,7 +277,7 @@ export async function updateOrder(
 // ---------------------------------------------------------------------------
 
 export async function listStandardRates(activeOnly = true): Promise<StandardRate[]> {
-  const rates = await readSheet<StandardRate>("Standard_Rates", STANDARD_RATE_HEADERS as string[]);
+  const rates = await readStandardRateRows();
   return activeOnly ? rates.filter((r) => r.active) : rates;
 }
 
@@ -264,7 +287,7 @@ export async function getStandardRate(service_type: string): Promise<StandardRat
 }
 
 export async function listCustomRates(client_id?: string): Promise<CustomRate[]> {
-  const rates = await readSheet<CustomRate>("Custom_Rates", CUSTOM_RATE_HEADERS as string[]);
+  const rates = await readCustomRateRows();
   return client_id ? rates.filter((r) => r.client_id === client_id) : rates;
 }
 
@@ -301,7 +324,7 @@ export async function listAppointments(filters?: {
   from?: string;
   to?: string;
 }): Promise<Appointment[]> {
-  let appts = await readSheet<Appointment>("Appointments", APPOINTMENT_HEADERS as string[]);
+  let appts = await readAppointmentRows();
   if (filters?.client_id) appts = appts.filter((a) => a.client_id === filters.client_id);
   if (filters?.order_id) appts = appts.filter((a) => a.order_id === filters.order_id);
   if (filters?.from) appts = appts.filter((a) => a.start_time >= filters.from!);
@@ -331,7 +354,7 @@ export async function listInvoices(filters?: {
   client_id?: string;
   status?: string;
 }): Promise<Invoice[]> {
-  let invoices = await readSheet<Invoice>("Invoices", INVOICE_HEADERS as string[]);
+  let invoices = await readInvoiceRows();
   if (filters?.client_id) invoices = invoices.filter((i) => i.client_id === filters.client_id);
   if (filters?.status) invoices = invoices.filter((i) => i.status === filters.status);
   return invoices;
@@ -361,12 +384,12 @@ export async function updateInvoice(
 // ---------------------------------------------------------------------------
 
 export async function listLineItems(invoice_id: string): Promise<InvoiceLineItem[]> {
-  const items = await readSheet<InvoiceLineItem>("Invoice_Line_Items", LINE_ITEM_HEADERS as string[]);
+  const items = await readLineItemRows();
   return items.filter((item) => item.invoice_id === invoice_id);
 }
 
 export async function listAllLineItems(): Promise<InvoiceLineItem[]> {
-  return readSheet<InvoiceLineItem>("Invoice_Line_Items", LINE_ITEM_HEADERS as string[]);
+  return readLineItemRows();
 }
 
 export async function appendLineItem(item: InvoiceLineItem): Promise<void> {
