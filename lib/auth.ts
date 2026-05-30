@@ -37,6 +37,16 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
     }),
   ],
   callbacks: {
+    async signIn({ user }) {
+      // Only allow explicitly whitelisted email addresses.
+      // Set ALLOWED_EMAILS=you@example.com,other@example.com in .env.local
+      const allowed = (process.env.ALLOWED_EMAILS ?? "")
+        .split(",")
+        .map((e) => e.trim().toLowerCase())
+        .filter(Boolean);
+      if (allowed.length === 0) return true; // no allowlist configured → open (dev mode)
+      return allowed.includes((user.email ?? "").toLowerCase());
+    },
     async jwt({ token, account }) {
       // Persist Google tokens into the JWT on first login
       if (account) {

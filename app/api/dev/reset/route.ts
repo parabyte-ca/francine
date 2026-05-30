@@ -12,6 +12,9 @@ import { auth } from "@/lib/auth";
 import { clearAllData } from "@/lib/google/sheets";
 
 export async function POST() {
+  if (process.env.NODE_ENV === "production") {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
   const session = await auth();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
