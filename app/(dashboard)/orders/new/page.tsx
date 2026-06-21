@@ -25,13 +25,12 @@ type FormData = z.infer<typeof schema>;
 
 type ClientOption = { client_id: string; name: string; email: string; company: string; contacts: string };
 
-export default function NewOrderPage() {
+export default function NewBookingPage() {
   const router = useRouter();
   const [allClients, setAllClients] = useState<ClientOption[]>([]);
   const [clientSearch, setClientSearch] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
-  const [clientContacts, setClientContacts] = useState<string[]>([]);
-  const [selectedTeam, setSelectedTeam] = useState<Set<string>>(new Set());
+  const [teamSuggestions, setTeamSuggestions] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [calendarWarning, setCalendarWarning] = useState<string | null>(null);
@@ -53,6 +52,22 @@ export default function NewOrderPage() {
     fetch("/api/customers")
       .then((r) => r.json())
       .then((j) => setAllClients(j.data ?? []));
+
+    // Collect unique team names from past bookings for autocomplete
+    fetch("/api/orders")
+      .then((r) => r.json())
+      .then((j) => {
+        const seen = new Set<string>();
+        for (const o of (j.data ?? [])) {
+          if (o.assigned_to) {
+            for (const name of (o.assigned_to as string).split(",").map((s: string) => s.trim()).filter(Boolean)) {
+              seen.add(name);
+            }
+          }
+        }
+        setTeamSuggestions([...seen].sort());
+      })
+      .catch(() => {});
   }, []);
 
   // ── Real-time conflict check ──────────────────────────────────────────────
@@ -102,10 +117,6 @@ export default function NewOrderPage() {
     setValue("client_id", c.client_id, { shouldValidate: true });
     setClientSearch(`${c.name} — ${c.company || c.email}`);
     setShowDropdown(false);
-    const parsed = c.contacts ? c.contacts.split(",").map((s) => s.trim()).filter(Boolean) : [];
-    setClientContacts(parsed);
-    setSelectedTeam(new Set());
-    setValue("assigned_to", "");
   };
 
   const onSubmit = async (data: FormData) => {
@@ -130,7 +141,6 @@ export default function NewOrderPage() {
       const json = await res.json();
       if (json.calendar_warning) {
         setCalendarWarning(json.calendar_warning);
-        // Brief pause so the user sees the warning, then redirect
         await new Promise((r) => setTimeout(r, 2500));
       }
       router.push(`/orders/${json.data.order_id}`);
@@ -142,8 +152,8 @@ export default function NewOrderPage() {
   return (
     <>
       <Topbar
-        title="New Event"
-        subtitle="Capture a new interpretation event"
+        title="New Booking"
+        subtitle="Capture a new interpretation booking"
         actions={
           <Link href="/orders" className="btn-ghost">
             <ArrowLeft className="w-4 h-4" /><span className="hidden sm:inline">Back</span>
@@ -153,7 +163,7 @@ export default function NewOrderPage() {
       <div className="flex-1 p-6 overflow-y-auto">
         <div className="max-w-2xl mx-auto">
           <form onSubmit={handleSubmit(onSubmit)} className="card space-y-5">
-            <h2 className="font-semibold text-gray-900">Event Intake Form</h2>
+            <h2 className="font-semibold text-gray-900">Booking Intake Form</h2>
 
             {error && (
               <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
@@ -167,7 +177,7 @@ export default function NewOrderPage() {
                 <div>
                   <p className="font-medium">Calendar warning</p>
                   <p>{calendarWarning}</p>
-                  <p className="text-xs mt-1 text-amber-600">Event was created. Redirecting…</p>
+                  <p className="text-xs mt-1 text-amber-600">Booking was created. Redirecting…</p>
                 </div>
               </div>
             )}
@@ -205,27 +215,22 @@ export default function NewOrderPage() {
               {errors.client_id && <p className="text-xs text-red-600 mt-1">{errors.client_id.message}</p>}
             </div>
 
-            {/* Service type (fixed) */}
+            {/* Event Description */}
             <div>
-              <label className="label">Interpretation</label>
-              <p className="input bg-gray-50 text-gray-600 cursor-default select-none">{ASL_SERVICE_TYPE}</p>
-            </div>
-
-            {/* Description */}
-            <div>
-              <label className="label">Description</label>
-              <textarea
+              <label className="label">Event Description</label>
+              <input
+                type="text"
                 {...register("description")}
-                className="input resize-none"
-                rows={3}
-                placeholder="Languages, subject matter, special requirements…"
+                className="input"
+                placeholder="e.g. TMU Book Launch, Workplace Training, Medical Appointment…"
               />
+              <p className="text-xs text-gray-400 mt-1">This appears on the invoice line item.</p>
             </div>
 
             {/* Date + Duration */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="label">Requested Date *</label>
+                <label className="label">Worked Date *</label>
                 <input type="datetime-local" {...register("requested_date")} className="input" />
                 {errors.requested_date && <p className="text-xs text-red-600 mt-1">{errors.requested_date.message}</p>}
               </div>
@@ -246,7 +251,7 @@ export default function NewOrderPage() {
                 <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
                 <div>
                   <p className="font-medium">Calendar conflict detected</p>
-                  <p className="text-xs mt-0.5">Another appointment overlaps this time slot. You can still create this event — the conflict will be noted.</p>
+                  <p className="text-xs mt-0.5">Another appointment overlaps this time slot. You can still create this booking — the conflict will be noted.</p>
                 </div>
               </div>
             )}
@@ -262,33 +267,22 @@ export default function NewOrderPage() {
               <input type="text" {...register("location")} className="input" placeholder="Address or 'Remote'" />
             </div>
 
-            {/* Team */}
+            {/* Team — free-text with autocomplete from past bookings */}
             <div>
               <label className="label">Team</label>
-              {clientContacts.length > 0 ? (
-                <div className="space-y-1.5">
-                  {clientContacts.map((name) => (
-                    <label key={name} className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        className="rounded"
-                        checked={selectedTeam.has(name)}
-                        onChange={(e) => {
-                          setSelectedTeam((prev) => {
-                            const next = new Set(prev);
-                            if (e.target.checked) next.add(name); else next.delete(name);
-                            setValue("assigned_to", [...next].join(", "));
-                            return next;
-                          });
-                        }}
-                      />
-                      {name}
-                    </label>
+              <input
+                type="text"
+                {...register("assigned_to")}
+                className="input"
+                placeholder="Team member names (comma-separated)"
+                list="team-suggestions"
+              />
+              {teamSuggestions.length > 0 && (
+                <datalist id="team-suggestions">
+                  {teamSuggestions.map((s) => (
+                    <option key={s} value={s} />
                   ))}
-                  <input type="hidden" {...register("assigned_to")} />
-                </div>
-              ) : (
-                <input type="text" {...register("assigned_to")} className="input" placeholder="Team member names" />
+                </datalist>
               )}
             </div>
 
@@ -317,7 +311,7 @@ export default function NewOrderPage() {
               <Link href="/orders" className="btn-secondary">Cancel</Link>
               <button type="submit" disabled={loading} className="btn-primary">
                 {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-                Create Event
+                Create Booking
               </button>
             </div>
           </form>

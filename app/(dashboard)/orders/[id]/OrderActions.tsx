@@ -132,12 +132,14 @@ function GenerateInvoiceModal({
     setError(null);
     const line_items: Array<{
       service_type: string;
+      description?: string;
       quantity: number;
       manual_override_price?: number;
       notes: string;
     }> = [
       {
         service_type: tier,
+        description: order.description || undefined,
         quantity: 1,
         manual_override_price: overridePrice ? Number(overridePrice) : undefined,
         notes: `${hours} hours — ${tierLabel(tier)}`,
