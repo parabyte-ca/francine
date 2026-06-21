@@ -84,6 +84,11 @@ export default function SetupPage() {
   const [gmailConnected, setGmailConnected] = useState(false);
   const [resendConfigured, setResendConfigured] = useState(false);
 
+  // Business settings state
+  const [weeklyThreshold, setWeeklyThreshold] = useState("2000");
+  const [thresholdSaving, setThresholdSaving] = useState(false);
+  const [thresholdSaved, setThresholdSaved] = useState(false);
+
   useEffect(() => {
     fetch("/api/settings")
       .then((r) => r.json())
@@ -91,6 +96,7 @@ export default function SetupPage() {
         setEmailOverride(j.data?.invoice_email_override ?? "");
         setGmailConnected(j.data?.gmail_connected ?? false);
         setResendConfigured(j.data?.resend_configured ?? false);
+        setWeeklyThreshold(String(j.data?.weekly_revenue_threshold ?? 2000));
       });
     // Show connection result from OAuth callback
     const params = new URLSearchParams(window.location.search);
@@ -111,6 +117,22 @@ export default function SetupPage() {
       setTimeout(() => setEmailSaved(false), 3000);
     } finally {
       setEmailSaving(false);
+    }
+  };
+
+  const saveThreshold = async () => {
+    setThresholdSaving(true);
+    setThresholdSaved(false);
+    try {
+      await fetch("/api/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ weekly_revenue_threshold: Number(weeklyThreshold) }),
+      });
+      setThresholdSaved(true);
+      setTimeout(() => setThresholdSaved(false), 3000);
+    } finally {
+      setThresholdSaving(false);
     }
   };
 
@@ -725,6 +747,44 @@ export default function SetupPage() {
                 <FileDown className="w-4 h-4" />
                 Download CSV
               </a>
+            </div>
+          </div>
+
+          {/* ── Business Settings ────────────────────────────────────────── */}
+          <div className="card">
+            <div className="flex items-start gap-3 mb-4">
+              <div className="p-2.5 rounded-lg bg-brand-50 text-brand-700 flex-shrink-0">
+                <DollarSign className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="font-semibold text-gray-900">Business Settings</h2>
+                <p className="text-sm text-gray-600 mt-0.5">Configure dashboard targets and thresholds.</p>
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="label">Weekly Revenue Target ($)</label>
+              <p className="text-xs text-gray-500 mb-2">
+                The dashboard highlights this-week gross in green when reached, red when below.
+              </p>
+              <div className="flex gap-2 max-w-xs">
+                <input
+                  type="number"
+                  min={0}
+                  step={100}
+                  className="input flex-1"
+                  value={weeklyThreshold}
+                  onChange={(e) => setWeeklyThreshold(e.target.value)}
+                />
+                <button
+                  onClick={saveThreshold}
+                  disabled={thresholdSaving}
+                  className="btn-primary text-xs py-1.5 whitespace-nowrap"
+                >
+                  {thresholdSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : thresholdSaved ? <Check className="w-3.5 h-3.5" /> : null}
+                  {thresholdSaved ? "Saved" : "Save"}
+                </button>
+              </div>
             </div>
           </div>
 
