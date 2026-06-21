@@ -138,9 +138,9 @@ function GenerateInvoiceModal({
     }> = [
       {
         service_type: tier,
-        quantity: hours,
+        quantity: 1,
         manual_override_price: overridePrice ? Number(overridePrice) : undefined,
-        notes: "",
+        notes: `${hours} hours — ${tierLabel(tier)}`,
       },
     ];
     if (mileage !== null && Number(mileage) > 0) {

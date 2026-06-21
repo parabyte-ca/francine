@@ -228,7 +228,6 @@ export default function SchedulingPage() {
       fetchAppointments(currentDate);
       if (typeof json.calendar_warning === "string") {
         setToast(json.calendar_warning);
-        setTimeout(() => setToast(null), 8000);
       }
     } finally {
       setBookLoading(false);
@@ -274,8 +273,11 @@ export default function SchedulingPage() {
   return (
     <>
       {toast && (
-        <div className="fixed top-4 right-4 z-50 max-w-sm p-3 bg-yellow-50 border border-yellow-300 rounded-lg text-sm text-yellow-800 shadow-lg">
-          {toast}
+        <div className="fixed top-4 right-4 z-50 max-w-sm p-3 bg-yellow-50 border border-yellow-300 rounded-lg text-sm text-yellow-800 shadow-lg flex items-start gap-2">
+          <span className="flex-1">{toast}</span>
+          <button onClick={() => setToast(null)} className="text-yellow-600 hover:text-yellow-900 flex-shrink-0 mt-0.5">
+            <X className="w-4 h-4" />
+          </button>
         </div>
       )}
       <Topbar
@@ -338,7 +340,18 @@ export default function SchedulingPage() {
                     type="time"
                     className="input"
                     value={manualStart}
-                    onChange={(e) => setManualStart(e.target.value)}
+                    onChange={(e) => {
+                      const next = e.target.value;
+                      setManualStart(next);
+                      const order = orderMap[bookForm.order_id];
+                      if (order?.duration_hours && next) {
+                        const [h, m] = next.split(":").map(Number);
+                        const endMinutes = h * 60 + m + Math.round(order.duration_hours * 60);
+                        const endH = Math.floor(endMinutes / 60) % 24;
+                        const endM = endMinutes % 60;
+                        setManualEnd(`${String(endH).padStart(2, "0")}:${String(endM).padStart(2, "0")}`);
+                      }
+                    }}
                   />
                 </div>
                 <div>
@@ -391,7 +404,18 @@ export default function SchedulingPage() {
                 <select
                   className="input"
                   value={bookForm.order_id}
-                  onChange={(e) => setBookForm((p) => ({ ...p, order_id: e.target.value }))}
+                  onChange={(e) => {
+                    const orderId = e.target.value;
+                    setBookForm((p) => ({ ...p, order_id: orderId }));
+                    const order = orderMap[orderId];
+                    if (order?.duration_hours && manualStart) {
+                      const [h, m] = manualStart.split(":").map(Number);
+                      const endMinutes = h * 60 + m + Math.round(order.duration_hours * 60);
+                      const endH = Math.floor(endMinutes / 60) % 24;
+                      const endM = endMinutes % 60;
+                      setManualEnd(`${String(endH).padStart(2, "0")}:${String(endM).padStart(2, "0")}`);
+                    }
+                  }}
                 >
                   <option value="">Select an order…</option>
                   {bookableOrders.map((o) => (
