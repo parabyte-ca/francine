@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Topbar from "@/components/Topbar";
 import StatusBadge from "@/components/StatusBadge";
-import { DollarSign, TrendingUp, AlertCircle, Clock, Loader2, CheckCircle2, Send } from "lucide-react";
+import { DollarSign, TrendingUp, AlertCircle, Clock, Loader2, CheckCircle2, Send, Bell } from "lucide-react";
 import type { Invoice } from "@/types";
 
 interface DashboardData {
@@ -26,9 +26,12 @@ export default function PaymentsPage() {
   const [filter, setFilter]       = useState("all");
   const [recording, setRecording] = useState<string | null>(null);
   const [resending, setResending] = useState<string | null>(null);
+  const [reminding, setReminding] = useState<string | null>(null);
   const [toast, setToast]         = useState<Toast | null>(null);
   const [payModal, setPayModal]   = useState<Invoice | null>(null);
   const [payForm, setPayForm]     = useState({ method: "e-transfer", reference: "", send_receipt: true });
+  const [remindModal, setRemindModal] = useState<Invoice | null>(null);
+  const [remindNote, setRemindNote]   = useState("");
   const [clientMap, setClientMap] = useState<Record<string, string>>({});
 
   const showToast = (message: string, type: Toast["type"]) => {
@@ -72,6 +75,32 @@ export default function PaymentsPage() {
       showToast("Network error — could not resend invoice.", "error");
     } finally {
       setResending(null);
+    }
+  };
+
+  const handleRemind = async () => {
+    if (!remindModal) return;
+    setReminding(remindModal.invoice_id);
+    try {
+      const res = await fetch(`/api/invoices/${remindModal.invoice_id}/remind`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ note: remindNote.trim() || undefined }),
+      });
+      if (res.ok) {
+        const json = await res.json();
+        showToast(json.message ?? `Reminder sent for ${remindModal.invoice_number}.`, "success");
+        await fetchData(filter === "all" ? undefined : filter);
+      } else {
+        const json = await res.json().catch(() => ({}));
+        showToast(typeof json.error === "string" ? json.error : "Failed to send reminder.", "error");
+      }
+    } catch {
+      showToast("Network error — could not send reminder.", "error");
+    } finally {
+      setReminding(null);
+      setRemindModal(null);
+      setRemindNote("");
     }
   };
 
@@ -158,7 +187,7 @@ export default function PaymentsPage() {
           ))}
         </div>
 
-        {/* Invoice table — FR-036: Sent + Due columns */}
+        {/* Invoice table */}
         <div className="card overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -177,18 +206,27 @@ export default function PaymentsPage() {
                 <tr><td colSpan={7} className="py-10 text-center text-gray-400">No invoices.</td></tr>
               )}
               {invoices.map((inv) => {
-                // FR-036: Sent date = sent_at if present, else issue_date for non-drafts
                 const sentDisplay = inv.sent_at
                   ? inv.sent_at.split("T")[0]
                   : inv.status !== "draft"
                     ? inv.issue_date
                     : "—";
 
-                const canResend = inv.status === "sent" || inv.is_overdue;
+                const canResend  = inv.status === "sent" || inv.is_overdue;
+                const canRemind  = inv.status === "sent" || inv.is_overdue;
+                const remCount   = Number(inv.reminder_count) || 0;
 
                 return (
                   <tr key={inv.invoice_id} className="border-b last:border-0 hover:bg-gray-50 transition-colors">
-                    <td className="py-3 pr-4 font-mono text-xs">{inv.invoice_number}</td>
+                    <td className="py-3 pr-4">
+                      <span className="font-mono text-xs">{inv.invoice_number}</span>
+                      {/* FR-040: optional reminder count tracker */}
+                      {remCount > 0 && (
+                        <span className="ml-1.5 inline-flex items-center gap-0.5 text-[10px] font-medium text-orange-600 bg-orange-50 border border-orange-200 rounded-full px-1.5 py-0.5">
+                          <Bell className="w-2.5 h-2.5" />{remCount}×
+                        </span>
+                      )}
+                    </td>
                     <td className="py-3 pr-4">{clientMap[inv.client_id] ?? `${inv.client_id.slice(0, 8)}…`}</td>
                     <td className="py-3 pr-4 text-gray-600">{sentDisplay}</td>
                     <td className={`py-3 pr-4 ${inv.is_overdue ? "text-red-600 font-medium" : "text-gray-600"}`}>
@@ -208,8 +246,7 @@ export default function PaymentsPage() {
                           <CheckCircle2 className="w-3.5 h-3.5" /> Paid {inv.paid_at?.split("T")[0]}
                         </span>
                       ) : inv.status !== "void" ? (
-                        <div className="flex items-center gap-2">
-                          {/* FR-037: Resend button for unpaid/overdue invoices */}
+                        <div className="flex items-center gap-1.5 flex-wrap">
                           {canResend && (
                             <button
                               onClick={() => handleResend(inv)}
@@ -221,6 +258,20 @@ export default function PaymentsPage() {
                                 ? <Loader2 className="w-3 h-3 animate-spin" />
                                 : <Send className="w-3 h-3" />}
                               Resend
+                            </button>
+                          )}
+                          {/* FR-040: manual reminder button */}
+                          {canRemind && (
+                            <button
+                              onClick={() => { setRemindModal(inv); setRemindNote(""); }}
+                              disabled={reminding === inv.invoice_id}
+                              className="btn-secondary text-xs py-1.5 gap-1"
+                              title="Send payment reminder"
+                            >
+                              {reminding === inv.invoice_id
+                                ? <Loader2 className="w-3 h-3 animate-spin" />
+                                : <Bell className="w-3 h-3" />}
+                              Remind
                             </button>
                           )}
                           <button
@@ -251,6 +302,60 @@ export default function PaymentsPage() {
             ? <CheckCircle2 className="w-4 h-4 shrink-0" />
             : <AlertCircle className="w-4 h-4 shrink-0" />}
           {toast.message}
+        </div>
+      )}
+
+      {/* Send reminder modal */}
+      {remindModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm">
+            <div className="p-6 space-y-4">
+              <div className="flex items-center gap-2">
+                <Bell className="w-4 h-4 text-brand-600" />
+                <h2 className="font-semibold text-gray-900">Send Payment Reminder</h2>
+              </div>
+              <p className="text-sm text-gray-600">
+                {remindModal.invoice_number} — <strong>${remindModal.total.toFixed(2)}</strong>
+                {" "}due {remindModal.due_date}
+              </p>
+              {Number(remindModal.reminder_count) > 0 && (
+                <p className="text-xs text-orange-600">
+                  {Number(remindModal.reminder_count)} reminder{Number(remindModal.reminder_count) !== 1 ? "s" : ""} already sent
+                  {remindModal.last_reminder_at ? ` — last on ${remindModal.last_reminder_at.split("T")[0]}` : ""}.
+                </p>
+              )}
+              <div>
+                <label className="label">Custom note (optional)</label>
+                <textarea
+                  rows={3}
+                  className="input resize-none"
+                  placeholder="Add a personal note to the reminder email…"
+                  value={remindNote}
+                  onChange={(e) => setRemindNote(e.target.value)}
+                  maxLength={500}
+                />
+                <p className="text-xs text-gray-400 mt-1 text-right">{remindNote.length}/500</p>
+              </div>
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => { setRemindModal(null); setRemindNote(""); }}
+                  className="btn-secondary"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleRemind}
+                  disabled={reminding === remindModal.invoice_id}
+                  className="btn-primary"
+                >
+                  {reminding === remindModal.invoice_id
+                    ? <Loader2 className="w-4 h-4 animate-spin" />
+                    : <Bell className="w-4 h-4" />}
+                  Send Reminder
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
