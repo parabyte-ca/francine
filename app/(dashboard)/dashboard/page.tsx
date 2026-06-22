@@ -146,7 +146,7 @@ async function DashboardContent() {
               <p className="text-xs text-gray-500 mb-0.5">Need to Invoice</p>
               <p className="text-xl font-bold text-gray-900">{needToInvoice.length}</p>
               <p className="text-xs text-gray-400 mt-0.5">
-                {uninvoicedTotal > 0 ? `~$${uninvoicedTotal.toFixed(0)} est.` : "events"}
+                {uninvoicedTotal > 0 ? `~$${uninvoicedTotal.toFixed(0)} est.` : "bookings"}
               </p>
             </div>
             <div className="p-2 rounded-lg text-purple-600 bg-purple-50"><ClipboardList className="w-4 h-4" /></div>
@@ -163,7 +163,7 @@ async function DashboardContent() {
                   : "—"}
               </p>
               <p className="text-xs text-gray-400 mt-0.5">
-                {nextWeekOrders.length > 0 ? `${nextWeekOrders.length} event${nextWeekOrders.length > 1 ? "s" : ""}` : "nothing scheduled"}
+                {nextWeekOrders.length > 0 ? `${nextWeekOrders.length} booking${nextWeekOrders.length > 1 ? "s" : ""}` : "nothing scheduled"}
               </p>
             </div>
             <div className="p-2 rounded-lg text-blue-600 bg-blue-50"><CalendarDays className="w-4 h-4" /></div>
@@ -297,7 +297,7 @@ async function DashboardContent() {
             </Link>
           </div>
           {needToInvoice.length === 0 ? (
-            <p className="text-sm text-gray-400 py-4 text-center">All events have been invoiced.</p>
+            <p className="text-sm text-gray-400 py-4 text-center">All bookings have been invoiced.</p>
           ) : (
             <div className="space-y-2">
               {needToInvoice.slice(0, 6).map(({ order, client }) => (
@@ -321,7 +321,7 @@ async function DashboardContent() {
                 </Link>
               ))}
               {needToInvoice.length > 6 && (
-                <p className="text-xs text-gray-400">+{needToInvoice.length - 6} more events</p>
+                <p className="text-xs text-gray-400">+{needToInvoice.length - 6} more bookings</p>
               )}
             </div>
           )}

@@ -19,7 +19,7 @@ import {
 
 const NAV_ITEMS = [
   { href: "/dashboard",   label: "Dashboard",  icon: LayoutDashboard },
-  { href: "/orders",      label: "Events",     icon: ClipboardList },
+  { href: "/orders",      label: "Bookings",   icon: ClipboardList },
   { href: "/customers",   label: "Clients",    icon: Users },
   { href: "/scheduling",  label: "Scheduling", icon: CalendarDays },
   { href: "/invoices",    label: "Invoices",   icon: FileText },
