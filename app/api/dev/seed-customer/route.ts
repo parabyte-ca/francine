@@ -103,6 +103,8 @@ function generateClient(): Client {
     default_tax_exempt: Math.random() < 0.15,
     notes:              "",
     contacts:           "",
+    department:         "",
+    drive_folder_url:   "",
     created_at:         now,
     updated_at:         now,
   };

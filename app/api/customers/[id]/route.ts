@@ -24,11 +24,13 @@ const PatchClientSchema = z.object({
   province:           z.string().optional(),
   postal_code:        z.string().optional(),
   company:            z.string().optional(),
+  department:         z.string().optional(),
   language_pair:      z.string().optional(),
   default_tax_exempt: z.boolean().optional(),
   notes:              z.string().optional(),
   abbreviation:       z.string().max(4).optional(),
   contacts:           z.string().optional(),
+  drive_folder_url:   z.string().optional(),
 });
 
 export async function GET(

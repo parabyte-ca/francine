@@ -26,11 +26,13 @@ const CreateClientSchema = z.object({
   province:            z.string().default(""),
   postal_code:         z.string().default(""),
   company:             z.string().default(""),
+  department:          z.string().default(""),
   language_pair:       z.string().default(""),
   default_tax_exempt:  z.boolean().default(false),
   notes:               z.string().default(""),
   abbreviation:        z.string().max(4).default(""),
   contacts:            z.string().default(""),
+  drive_folder_url:    z.string().default(""),
 });
 
 export async function GET(req: NextRequest) {

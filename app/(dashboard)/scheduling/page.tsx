@@ -281,7 +281,7 @@ export default function SchedulingPage() {
         </div>
       )}
       <Topbar
-        title="Scheduling"
+        title="Calendar"
         subtitle="Click a time slot to book · Click an appointment to view details"
         actions={
           <div className="flex items-center gap-2">
