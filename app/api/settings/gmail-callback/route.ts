@@ -6,6 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { auth } from "@/lib/auth";
 import { getOAuth2Client } from "@/lib/google/auth";
 import { setConfig } from "@/lib/google/sheets";
@@ -17,9 +18,19 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const code  = searchParams.get("code");
   const error = searchParams.get("error");
+  const state = searchParams.get("state");
+
+  const cookieStore = cookies();
+  const savedState = cookieStore.get("gmail_oauth_state")?.value;
+  cookieStore.delete("gmail_oauth_state");
+
+  const baseUrl = process.env.AUTH_URL ?? process.env.NEXTAUTH_URL ?? "";
+
+  if (!state || !savedState || state !== savedState) {
+    return NextResponse.redirect(`${baseUrl}/setup?gmail=csrf_error`);
+  }
 
   if (error || !code) {
-    const baseUrl = process.env.AUTH_URL ?? process.env.NEXTAUTH_URL ?? "";
     return NextResponse.redirect(`${baseUrl}/setup?gmail=denied`);
   }
 

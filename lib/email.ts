@@ -26,6 +26,10 @@ export interface SendEmailParams {
 // RFC-2822 message builder (used by the Gmail OAuth2 path)
 // ---------------------------------------------------------------------------
 
+function cleanHeader(val: string): string {
+  return val.replace(/[\r\n]+/g, " ").trim();
+}
+
 function buildRawMessage(params: {
   to: string;
   from: string;
@@ -36,10 +40,14 @@ function buildRawMessage(params: {
 }): string {
   const boundary = `----=_Part_${Date.now()}`;
 
+  const fromClean = cleanHeader(params.from);
+  const toClean = cleanHeader(params.to);
+  const subjectClean = cleanHeader(params.subject);
+
   const message = [
-    `From: ${params.from}`,
-    `To: ${params.to}`,
-    `Subject: ${params.subject}`,
+    `From: ${fromClean}`,
+    `To: ${toClean}`,
+    `Subject: ${subjectClean}`,
     `MIME-Version: 1.0`,
   ];
 

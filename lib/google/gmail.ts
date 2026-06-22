@@ -17,9 +17,13 @@ import { sendEmail } from "../email";
 // Re-export so existing imports of sendEmail from this module still work
 export { sendEmail };
 
-/** Escape HTML special characters to prevent injection in email bodies */
 function esc(s: string): string {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 // ---------------------------------------------------------------------------

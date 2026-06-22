@@ -11,6 +11,13 @@ import { getCalendarEvent } from "@/lib/google/calendar";
 import { listAppointments, updateAppointment } from "@/lib/google/sheets";
 
 export async function POST(req: NextRequest) {
+  const reqToken = req.headers.get("x-goog-channel-token");
+  const expectedToken = process.env.NEXTAUTH_SECRET || "default-secret-token";
+  if (!reqToken || reqToken !== expectedToken) {
+    console.warn("[webhook] Unauthorized calendar webhook request: token mismatch");
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const resourceState = req.headers.get("x-goog-resource-state");
   // "sync" is the initial handshake — acknowledge and return
   if (resourceState === "sync") {

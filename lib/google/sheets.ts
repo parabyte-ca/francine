@@ -120,6 +120,23 @@ async function appendRow(tabName: string, headers: string[], obj: Record<string,
   });
 }
 
+/** Append multiple rows to a sheet tab in a single API call */
+async function appendRows(
+  tabName: string,
+  headers: string[],
+  objs: Record<string, unknown>[]
+): Promise<void> {
+  if (objs.length === 0) return;
+  const sheets = getSheetsClient();
+  const rows = objs.map((obj) => objectToRow(headers, obj));
+  await sheets.spreadsheets.values.append({
+    spreadsheetId: SHEET_ID(),
+    range: `${tabName}!A1`,
+    valueInputOption: "RAW",
+    requestBody: { values: rows },
+  });
+}
+
 /** Update a single row identified by a primary-key value in column A */
 async function updateRow(
   tabName: string,
@@ -399,6 +416,10 @@ export async function appendLineItem(item: InvoiceLineItem): Promise<void> {
   await appendRow("Invoice_Line_Items", LINE_ITEM_HEADERS as string[], item as unknown as Record<string, unknown>);
 }
 
+export async function appendLineItems(items: InvoiceLineItem[]): Promise<void> {
+  await appendRows("Invoice_Line_Items", LINE_ITEM_HEADERS as string[], items as unknown as Record<string, unknown>[]);
+}
+
 // ---------------------------------------------------------------------------
 // Utility: generate next invoice number
 // ---------------------------------------------------------------------------
@@ -414,15 +435,24 @@ export async function nextInvoiceNumber(clientAbbr: string): Promise<string> {
 // Utility: Config key/value store (persists Drive folder ID, watch state, etc.)
 // ---------------------------------------------------------------------------
 
-/** Read a config value by key. Returns null if the key or the tab doesn't exist. */
-export async function getConfig(key: string): Promise<string | null> {
+const readConfigRows = cache(async () => {
   try {
     const sheets = getSheetsClient();
     const res = await sheets.spreadsheets.values.get({
       spreadsheetId: SHEET_ID(),
       range: "Config!A2:B1000",
     });
-    const row = (res.data.values ?? []).find((r) => r[0] === key);
+    return res.data.values ?? [];
+  } catch {
+    return [];
+  }
+});
+
+/** Read a config value by key. Returns null if the key or the tab doesn't exist. */
+export async function getConfig(key: string): Promise<string | null> {
+  try {
+    const rows = await readConfigRows();
+    const row = rows.find((r) => r[0] === key);
     return row ? String(row[1] ?? "") : null;
   } catch {
     return null;
