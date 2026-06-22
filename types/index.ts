@@ -161,6 +161,7 @@ export interface Invoice {
   notes: string;
   contact_name: string;   // billing contact name, e.g. "Greg Robinson"
   contact_title: string;  // billing contact title, e.g. "HR Manager"
+  sent_at: string;        // ISO-8601 datetime of most recent email send, empty if never sent
   created_at: string;
   updated_at: string;
 }
