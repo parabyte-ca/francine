@@ -20,7 +20,7 @@ import { auth } from "@/lib/auth";
 import { computeClientAbbr } from "@/lib/invoice-utils";
 import {
   createInvoice,
-  appendLineItem,
+  appendLineItems,
   listInvoices,
   nextInvoiceNumber,
   getOrder,
@@ -179,7 +179,7 @@ export async function POST(req: NextRequest) {
 
     // ── Persist to Sheets ────────────────────────────────────────────────────
     await createInvoice(invoice);
-    await Promise.all(resolvedItems.map((item) => appendLineItem(item)));
+    await appendLineItems(resolvedItems);
 
     // ── Advance order to completed ───────────────────────────────────────────
     if (order.status === "scheduled") {

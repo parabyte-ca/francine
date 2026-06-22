@@ -234,6 +234,7 @@ export async function registerCalendarWatch(webhookUrl: string): Promise<{
       type: "web_hook",
       address: webhookUrl,
       expiration: String(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+      token: process.env.NEXTAUTH_SECRET || "default-secret-token",
     },
   });
 
