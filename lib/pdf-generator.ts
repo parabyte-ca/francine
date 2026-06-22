@@ -56,12 +56,13 @@ export async function generateInvoicePdf(params: {
   lineItems: InvoiceLineItem[];
   client: Client;
   companyName?: string;
+  companyTitle?: string;
   companyAddress?: string;
 }): Promise<Buffer> {
   const { invoice, lineItems, client } = params;
-  const companyName = params.companyName
-    ?? process.env.NEXT_PUBLIC_BUSINESS_NAME
-    ?? "Francine Gillis";
+  const companyName  = params.companyName  ?? process.env.NEXT_PUBLIC_BUSINESS_NAME ?? "Francine Gillis";
+  const companyTitle = params.companyTitle ?? process.env.BUSINESS_TITLE            ?? "ASL/English Interpreter";
+  const contactEmail = process.env.EMAIL_FROM_ADDRESS ?? process.env.GMAIL_FROM_ADDRESS ?? "";
 
   const pdfDoc = await PDFDocument.create();
   const page   = pdfDoc.addPage([PAGE_W, PAGE_H]);
@@ -69,17 +70,26 @@ export async function generateInvoicePdf(params: {
   const boldFont    = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
   const regularFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
-  // ── Header bar ────────────────────────────────────────────────────────────
+  // ── Header bar (100pt — accommodates name + title + contact) ─────────────
   page.drawRectangle({
-    x: 0, y: PAGE_H - 90,
-    width: PAGE_W, height: 90,
+    x: 0, y: PAGE_H - 100,
+    width: PAGE_W, height: 100,
     color: BRAND,
   });
 
-  drawText(page, boldFont, companyName, MARGIN, PAGE_H - 45, 22, { color: rgb(1,1,1) });
+  // Left: name + title
+  drawText(page, boldFont,    companyName,  MARGIN, PAGE_H - 38, 22, { color: rgb(1,1,1) });
+  drawText(page, regularFont, companyTitle, MARGIN, PAGE_H - 57, 11, { color: rgb(1,1,1) });
 
-  // ── "INVOICE" — left side, directly under the name ───────────────────────
-  let y = PAGE_H - 110;
+  // Right: contact details
+  if (contactEmail) {
+    drawText(page, regularFont, contactEmail, PAGE_W - MARGIN, PAGE_H - 50, 9, {
+      color: rgb(1, 1, 1), align: "right",
+    });
+  }
+
+  // ── "INVOICE" — left side, directly under the header ─────────────────────
+  let y = PAGE_H - 120;
   drawText(page, boldFont, "INVOICE", MARGIN, y, 20, { color: BRAND });
 
   // ── Invoice metadata (right column) ───────────────────────────────────────
@@ -94,15 +104,34 @@ export async function generateInvoicePdf(params: {
     color: invoice.status === "paid" ? rgb(0.1, 0.6, 0.2) : TEXT_MUTED,
   });
 
-  // ── Bill To (pushed down 25 pts to clear INVOICE label) ───────────────────
-  const billY = PAGE_H - 140;
+  // ── Bill To ───────────────────────────────────────────────────────────────
+  const billY = PAGE_H - 150;
+  const contactName = invoice.contact_name || client.name;
   drawText(page, boldFont, "BILL TO", MARGIN, billY, 9, { color: TEXT_MUTED });
-  drawText(page, boldFont, client.name, MARGIN, billY - 16, 13, { color: TEXT_DARK });
-  if (client.company) drawText(page, regularFont, client.company, MARGIN, billY - 30, 10, { color: TEXT_DARK });
-  drawText(page, regularFont, client.email, MARGIN, billY - 44, 10, { color: TEXT_MUTED });
-  if (client.phone) drawText(page, regularFont, client.phone, MARGIN, billY - 58, 10, { color: TEXT_MUTED });
 
-  y = billY - 80;
+  let billOffset = 16;
+  drawText(page, boldFont, contactName, MARGIN, billY - billOffset, 13, { color: TEXT_DARK });
+  billOffset += 14;
+
+  if (invoice.contact_title) {
+    drawText(page, regularFont, invoice.contact_title, MARGIN, billY - billOffset, 10, { color: TEXT_MUTED });
+    billOffset += 14;
+  }
+
+  if (client.company) {
+    drawText(page, regularFont, client.company, MARGIN, billY - billOffset, 10, { color: TEXT_DARK });
+    billOffset += 14;
+  }
+
+  drawText(page, regularFont, client.email, MARGIN, billY - billOffset, 10, { color: TEXT_MUTED });
+  billOffset += 12;
+
+  if (client.phone) {
+    drawText(page, regularFont, client.phone, MARGIN, billY - billOffset, 10, { color: TEXT_MUTED });
+    billOffset += 12;
+  }
+
+  y = billY - billOffset - 14;
 
   // ── Divider ───────────────────────────────────────────────────────────────
   drawHRule(page, y);
@@ -120,7 +149,7 @@ export async function generateInvoicePdf(params: {
   const th = (label: string, x: number) =>
     drawText(page, boldFont, label, x, y - 14, 9, { color: TEXT_MUTED });
   th("DESCRIPTION", COL.desc);
-  th("DURATION",    COL.duration);
+  th("RATE",        COL.duration);
   th("UNIT PRICE",  COL.price);
   th("TOTAL",       COL.total);
 

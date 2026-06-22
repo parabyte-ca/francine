@@ -48,15 +48,17 @@ function buildRawMessage(params: {
     message.push("");
     message.push(`--${boundary}`);
     message.push(`Content-Type: text/html; charset=UTF-8`);
-    message.push(`Content-Transfer-Encoding: quoted-printable`);
+    message.push(`Content-Transfer-Encoding: base64`);
     message.push("");
-    message.push(params.htmlBody);
+    // Base64-encode the HTML body and wrap at 76 chars per RFC 2045
+    message.push(Buffer.from(params.htmlBody).toString("base64").replace(/(.{76})/g, "$1\r\n").trimEnd());
     message.push(`--${boundary}`);
     message.push(`Content-Type: application/pdf; name="${params.attachmentFilename}"`);
     message.push(`Content-Transfer-Encoding: base64`);
     message.push(`Content-Disposition: attachment; filename="${params.attachmentFilename}"`);
     message.push("");
-    message.push(params.attachmentBuffer.toString("base64"));
+    // Wrap at 76 chars per RFC 2045
+    message.push(params.attachmentBuffer.toString("base64").replace(/(.{76})/g, "$1\r\n").trimEnd());
     message.push(`--${boundary}--`);
   } else {
     message.push(`Content-Type: text/html; charset=UTF-8`);

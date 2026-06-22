@@ -197,7 +197,7 @@ const INVOICE_HEADERS: (keyof Invoice)[] = [
   "invoice_id", "invoice_number", "order_id", "client_id", "status",
   "issue_date", "due_date", "subtotal", "tax_rate", "tax_amount", "total",
   "drive_file_id", "drive_file_url", "paid_at", "payment_method",
-  "payment_reference", "notes", "created_at", "updated_at",
+  "payment_reference", "notes", "contact_name", "contact_title", "created_at", "updated_at",
 ];
 
 const LINE_ITEM_HEADERS: (keyof InvoiceLineItem)[] = [

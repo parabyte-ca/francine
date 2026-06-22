@@ -43,11 +43,13 @@ const LineItemInputSchema = z.object({
 });
 
 const CreateInvoiceSchema = z.object({
-  order_id:   z.string().uuid(),
-  due_days:   z.number().int().nonnegative().default(30),
-  notes:      z.string().default(""),
-  status:     z.enum(["draft", "sent"]).default("draft"),
-  line_items: z.array(LineItemInputSchema).min(1),
+  order_id:      z.string().uuid(),
+  due_days:      z.number().int().nonnegative().default(30),
+  notes:         z.string().default(""),
+  status:        z.enum(["draft", "sent"]).default("draft"),
+  contact_name:  z.string().default(""),
+  contact_title: z.string().default(""),
+  line_items:    z.array(LineItemInputSchema).min(1),
 });
 
 export async function GET(req: NextRequest) {
@@ -73,7 +75,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 422 });
   }
 
-  const { order_id, due_days, notes, status: requestedStatus, line_items } = parsed.data;
+  const { order_id, due_days, notes, status: requestedStatus, line_items, contact_name, contact_title } = parsed.data;
   const HST_RATE_PCT = Number(process.env.TAX_RATE_PERCENT ?? 13);
 
   // Fetch order and client
@@ -145,6 +147,8 @@ export async function POST(req: NextRequest) {
       payment_method:   "",
       payment_reference: "",
       notes,
+      contact_name:  contact_name || client.name,
+      contact_title,
       created_at:       now.toISOString(),
       updated_at:       now.toISOString(),
     };

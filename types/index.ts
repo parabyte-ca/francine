@@ -159,6 +159,8 @@ export interface Invoice {
   payment_method: PaymentMethod | "";
   payment_reference: string;  // cheque number, transaction ID, etc.
   notes: string;
+  contact_name: string;   // billing contact name, e.g. "Greg Robinson"
+  contact_title: string;  // billing contact title, e.g. "HR Manager"
   created_at: string;
   updated_at: string;
 }
