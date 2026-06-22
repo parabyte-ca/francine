@@ -34,7 +34,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(`${baseUrl}/setup?gmail=denied`);
   }
 
-  const baseUrl     = process.env.AUTH_URL ?? process.env.NEXTAUTH_URL ?? "";
   const redirectUri = `${baseUrl}/api/settings/gmail-callback`;
 
   const oauth = getOAuth2Client();
