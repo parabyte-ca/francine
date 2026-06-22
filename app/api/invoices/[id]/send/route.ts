@@ -51,7 +51,7 @@ export async function POST(
     pdfBuffer,
   });
 
-  await updateInvoice(params.id, { status: "sent" });
+  await updateInvoice(params.id, { status: "sent", sent_at: new Date().toISOString() });
 
   return NextResponse.json({ message: `Invoice ${invoice.invoice_number} sent to ${client.email}` });
 }

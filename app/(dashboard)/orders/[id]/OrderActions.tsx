@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, FileText, CheckCircle2, XCircle } from "lucide-react";
-import type { Order, Client } from "@/types";
+import type { Order, Client, StandardRate } from "@/types";
 
 const STATUSES = ["quote", "scheduled", "completed", "cancelled"] as const;
 type OrderStatus = typeof STATUSES[number];
@@ -19,8 +19,8 @@ interface Props {
 export default function OrderActions({ orderId, status, hasInvoice, order, client }: Props) {
   const router = useRouter();
   const [currentStatus, setCurrentStatus] = useState<OrderStatus>(status);
-  const [saving, setSaving] = useState(false);
-  const [statusError, setStatusError] = useState<string | null>(null);
+  const [saving, setSaving]               = useState(false);
+  const [statusError, setStatusError]     = useState<string | null>(null);
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
 
   useEffect(() => { setCurrentStatus(status); }, [status]);
@@ -91,17 +91,25 @@ export default function OrderActions({ orderId, status, hasInvoice, order, clien
 }
 
 // ---------------------------------------------------------------------------
-// Rate picker — FR-029
+// Rate picker — FR-029 / FR-039 (dynamic from Standard_Rates sheet)
 // ---------------------------------------------------------------------------
 
-const RATE_OPTIONS = [
+interface RateOption {
+  label: string;
+  service: string;
+  price: number | null; // null = custom (enter manually)
+}
+
+const DEFAULT_RATE_OPTIONS: RateOption[] = [
   { label: "< 90 min",   service: "ASL-English Interpretation < 90 min",  price: 230 },
   { label: "2 hours",    service: "ASL-English Interpretation 2h",          price: 275 },
   { label: "Half day",   service: "ASL-English Interpretation Half Day",    price: 330 },
   { label: "Full day",   service: "ASL-English Interpretation Full Day",    price: 630 },
   { label: "Conference", service: "ASL-English Interpretation Conference",  price: 800 },
   { label: "Custom",     service: "ASL-English Interpretation",             price: null },
-] as const;
+];
+
+const DEFAULT_SELECTED = "ASL-English Interpretation Half Day";
 
 function GenerateInvoiceModal({
   order,
@@ -114,24 +122,63 @@ function GenerateInvoiceModal({
   onClose: () => void;
   onDone: (id: string) => void;
 }) {
-  const [rateIdx, setRateIdx]         = useState(2); // default: Half day
-  const [customPrice, setCustomPrice] = useState("");
-  const [contactName, setContactName] = useState(client?.name || "");
-  const [contactTitle, setContactTitle] = useState("");
-  const [mileage, setMileage]         = useState<string | null>(
+  const [rateOptions, setRateOptions]         = useState<RateOption[]>(DEFAULT_RATE_OPTIONS);
+  const [selectedService, setSelectedService] = useState(DEFAULT_SELECTED);
+  const [customPrice, setCustomPrice]         = useState("");
+  const [contactName, setContactName]         = useState(client?.name || "");
+  const [contactTitle, setContactTitle]       = useState("");
+  const [mileage, setMileage]                 = useState<string | null>(
     order.mileage_cost > 0 ? String(order.mileage_cost) : null
   );
-  const [parking, setParking]         = useState<string | null>(
+  const [parking, setParking]                 = useState<string | null>(
     order.parking_cost > 0 ? String(order.parking_cost) : null
   );
-  const [dueDays, setDueDays]         = useState(30);
+  const [dueDays, setDueDays]                 = useState(30);
   // FR-030: pre-fill notes from booking's Event Description
-  const [notes, setNotes]             = useState(order.description || "");
-  const [invoiceStatus, setInvoiceStatus] = useState<"draft" | "sent">("draft");
-  const [loading, setLoading]         = useState(false);
-  const [error, setError]             = useState<string | null>(null);
+  const [notes, setNotes]                     = useState(order.description || "");
+  const [invoiceStatus, setInvoiceStatus]     = useState<"draft" | "sent">("draft");
+  const [loading, setLoading]                 = useState(false);
+  const [error, setError]                     = useState<string | null>(null);
 
-  const selectedRate = RATE_OPTIONS[rateIdx];
+  // FR-039: load rates dynamically from Standard_Rates sheet
+  useEffect(() => {
+    fetch("/api/rates")
+      .then((r) => r.json())
+      .then((json) => {
+        const standards: StandardRate[] = json.data?.standard_rates ?? [];
+        const aslRates = standards
+          .filter((r) => r.active && r.service_type.startsWith("ASL-English Interpretation"))
+          .sort((a, b) => {
+            if (a.base_price === 0) return 1;
+            if (b.base_price === 0) return -1;
+            return a.base_price - b.base_price;
+          });
+
+        if (aslRates.length > 0) {
+          const options: RateOption[] = aslRates.map((r) => {
+            const suffix = r.service_type
+              .replace("ASL-English Interpretation ", "")
+              .replace("ASL-English Interpretation", "")
+              .trim();
+            return {
+              label:   suffix || "Custom",
+              service: r.service_type,
+              price:   r.base_price > 0 ? r.base_price : null,
+            };
+          });
+          setRateOptions(options);
+          // Keep selection if the service still exists; fall back to half-day or first option
+          setSelectedService((prev) => {
+            if (options.some((o) => o.service === prev)) return prev;
+            const halfDay = options.find((o) => o.service.toLowerCase().includes("half day"));
+            return halfDay ? halfDay.service : options[0].service;
+          });
+        }
+      })
+      .catch(() => { /* keep static defaults on network failure */ });
+  }, []);
+
+  const selectedRate = rateOptions.find((r) => r.service === selectedService) ?? rateOptions[0];
   const isCustom     = selectedRate.price === null;
 
   const submit = async () => {
@@ -154,7 +201,7 @@ function GenerateInvoiceModal({
         // FR-027: prefix description with "Event: "
         description:           order.description ? `Event: ${order.description}` : undefined,
         quantity:              1,
-        manual_override_price: isCustom ? Number(customPrice) : selectedRate.price,
+        manual_override_price: isCustom ? Number(customPrice) : selectedRate.price!,
         notes:                 selectedRate.label,
       },
     ];
@@ -212,17 +259,17 @@ function GenerateInvoiceModal({
             </div>
           )}
 
-          {/* FR-029: Rate picker */}
+          {/* FR-029 / FR-039: Dynamic rate picker */}
           <div className="space-y-2">
             <p className="text-xs font-medium text-gray-700">Rate</p>
             <div className="grid grid-cols-3 gap-1.5">
-              {RATE_OPTIONS.map((r, i) => (
+              {rateOptions.map((r) => (
                 <button
-                  key={r.label}
+                  key={r.service}
                   type="button"
-                  onClick={() => setRateIdx(i)}
+                  onClick={() => setSelectedService(r.service)}
                   className={`py-2 px-1 text-xs rounded-lg border font-medium transition-colors ${
-                    rateIdx === i
+                    selectedService === r.service
                       ? "bg-brand-50 border-brand-400 text-brand-700"
                       : "border-gray-200 text-gray-600 hover:border-gray-300 bg-white"
                   }`}

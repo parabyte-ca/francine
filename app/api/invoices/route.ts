@@ -149,6 +149,7 @@ export async function POST(req: NextRequest) {
       notes,
       contact_name:  contact_name || client.name,
       contact_title,
+      sent_at:          requestedStatus === "sent" ? now.toISOString() : "",
       created_at:       now.toISOString(),
       updated_at:       now.toISOString(),
     };
