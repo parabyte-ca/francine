@@ -3,7 +3,7 @@ import Link from "next/link";
 import Topbar from "@/components/Topbar";
 import StatusBadge from "@/components/StatusBadge";
 import { getInvoice, getClient, listLineItems, getOrder } from "@/lib/google/sheets";
-import { ArrowLeft, FileText, ExternalLink, Download } from "lucide-react";
+import { ArrowLeft, FileText, ExternalLink, Download, Eye } from "lucide-react";
 import { formatDuration } from "@/lib/invoice-utils";
 import InvoiceActions from "./InvoiceActions";
 import type { Metadata } from "next";
@@ -171,12 +171,20 @@ export default async function InvoiceDetailPage({ params }: { params: { id: stri
           </h3>
           <div className="flex flex-wrap gap-2">
             <a
+              href={`/invoice/${invoice.invoice_id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-secondary text-sm"
+            >
+              <Eye className="w-4 h-4" /> Client View
+            </a>
+            <a
               href={`/api/invoices/${invoice.invoice_id}/pdf`}
               target="_blank"
               rel="noopener noreferrer"
               className="btn-secondary text-sm"
             >
-              <ExternalLink className="w-4 h-4" /> Preview
+              <ExternalLink className="w-4 h-4" /> Preview PDF
             </a>
             <a
               href={`/api/invoices/${invoice.invoice_id}/pdf?download=1`}
