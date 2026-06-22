@@ -164,6 +164,8 @@ export interface Invoice {
   sent_at: string;        // ISO-8601 datetime of most recent email send, empty if never sent
   created_at: string;
   updated_at: string;
+  reminder_count: number;     // how many payment reminders have been sent
+  last_reminder_at: string;   // ISO-8601 datetime of most recent reminder, empty if never sent
 }
 
 // ---------------------------------------------------------------------------

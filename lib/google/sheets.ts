@@ -57,6 +57,7 @@ const NUMERIC_FIELDS = new Set([
   "base_price", "minimum_charge", "override_price",
   "quantity", "unit_price", "total_price",
   "subtotal", "tax_rate", "tax_amount", "total", "amount_paid",
+  "reminder_count",
 ]);
 
 /** Convert a raw Sheets row (string[]) into a typed object using a header map */
@@ -198,6 +199,7 @@ const INVOICE_HEADERS: (keyof Invoice)[] = [
   "issue_date", "due_date", "subtotal", "tax_rate", "tax_amount", "total",
   "drive_file_id", "drive_file_url", "paid_at", "payment_method",
   "payment_reference", "notes", "contact_name", "contact_title", "sent_at", "created_at", "updated_at",
+  "reminder_count", "last_reminder_at",
 ];
 
 const LINE_ITEM_HEADERS: (keyof InvoiceLineItem)[] = [

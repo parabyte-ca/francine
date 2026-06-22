@@ -152,6 +152,8 @@ export async function POST(req: NextRequest) {
       sent_at:          requestedStatus === "sent" ? now.toISOString() : "",
       created_at:       now.toISOString(),
       updated_at:       now.toISOString(),
+      reminder_count:   0,
+      last_reminder_at: "",
     };
 
     // Set invoice_id on line items

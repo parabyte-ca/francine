@@ -5,7 +5,7 @@ import Topbar from "@/components/Topbar";
 import {
   Loader2, Settings as SettingsIcon, CheckCircle2, AlertCircle,
   RefreshCw, Trash2, UserPlus, FlaskConical, FileDown, BarChart3,
-  Database, DollarSign, Pencil, Plus, X, Check, User,
+  Database, DollarSign, Pencil, Plus, X, Check, User, Bell,
 } from "lucide-react";
 import pkg from "@/package.json";
 
@@ -89,6 +89,12 @@ export default function SetupPage() {
   const [thresholdSaving, setThresholdSaving] = useState(false);
   const [thresholdSaved, setThresholdSaved] = useState(false);
 
+  // Automatic reminders state
+  const [autoReminders, setAutoReminders]         = useState(false);
+  const [reminderInterval, setReminderInterval]   = useState("30");
+  const [reminderSaving, setReminderSaving]       = useState(false);
+  const [reminderSaved, setReminderSaved]         = useState(false);
+
   useEffect(() => {
     fetch("/api/settings")
       .then((r) => r.json())
@@ -97,6 +103,8 @@ export default function SetupPage() {
         setGmailConnected(j.data?.gmail_connected ?? false);
         setResendConfigured(j.data?.resend_configured ?? false);
         setWeeklyThreshold(String(j.data?.weekly_revenue_threshold ?? 2000));
+        setAutoReminders(j.data?.auto_reminders_enabled ?? false);
+        setReminderInterval(String(j.data?.reminder_interval_days ?? 30));
       });
     // Show connection result from OAuth callback
     const params = new URLSearchParams(window.location.search);
@@ -133,6 +141,25 @@ export default function SetupPage() {
       setTimeout(() => setThresholdSaved(false), 3000);
     } finally {
       setThresholdSaving(false);
+    }
+  };
+
+  const saveReminders = async () => {
+    setReminderSaving(true);
+    setReminderSaved(false);
+    try {
+      await fetch("/api/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          auto_reminders_enabled: autoReminders,
+          reminder_interval_days: Number(reminderInterval),
+        }),
+      });
+      setReminderSaved(true);
+      setTimeout(() => setReminderSaved(false), 3000);
+    } finally {
+      setReminderSaving(false);
     }
   };
 
@@ -784,6 +811,90 @@ export default function SetupPage() {
                   {thresholdSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : thresholdSaved ? <Check className="w-3.5 h-3.5" /> : null}
                   {thresholdSaved ? "Saved" : "Save"}
                 </button>
+              </div>
+            </div>
+          </div>
+
+          {/* ── Automatic Reminders ─────────────────────────────────────────── */}
+          <div className="card">
+            <div className="flex items-start gap-3 mb-4">
+              <div className="p-2.5 rounded-lg bg-brand-50 text-brand-700 flex-shrink-0">
+                <Bell className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="font-semibold text-gray-900">Automatic Payment Reminders</h2>
+                <p className="text-sm text-gray-600 mt-0.5">
+                  Automatically email clients about unpaid invoices on a schedule.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-5">
+              {/* Enable toggle */}
+              <div className="flex items-center justify-between p-3 border rounded-lg bg-gray-50">
+                <div>
+                  <p className="text-sm font-medium text-gray-900">Enable auto reminders</p>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Send reminder emails to clients with unpaid invoices past the interval below.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={autoReminders}
+                  onClick={() => setAutoReminders((v) => !v)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
+                    autoReminders ? "bg-brand-600" : "bg-gray-300"
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      autoReminders ? "translate-x-6" : "translate-x-1"
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {/* Interval */}
+              <div className="space-y-1">
+                <label className="label">Reminder interval (days)</label>
+                <p className="text-xs text-gray-500 mb-2">
+                  Send first reminder when invoice is this many days old. Repeat at the same
+                  interval until paid.
+                </p>
+                <div className="flex gap-2 max-w-xs">
+                  <input
+                    type="number"
+                    min={1}
+                    step={1}
+                    className="input flex-1"
+                    value={reminderInterval}
+                    onChange={(e) => setReminderInterval(e.target.value)}
+                  />
+                  <button
+                    onClick={saveReminders}
+                    disabled={reminderSaving}
+                    className="btn-primary text-xs py-1.5 whitespace-nowrap"
+                  >
+                    {reminderSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : reminderSaved ? <Check className="w-3.5 h-3.5" /> : null}
+                    {reminderSaved ? "Saved" : "Save"}
+                  </button>
+                </div>
+              </div>
+
+              {/* Cron setup info */}
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-800 space-y-1">
+                <p className="font-medium">Setup required: scheduled trigger</p>
+                <p>
+                  Auto reminders need a daily cron job to call{" "}
+                  <code className="font-mono bg-blue-100 px-1 rounded">GET /api/cron/payment-reminders</code>{" "}
+                  with header <code className="font-mono bg-blue-100 px-1 rounded">Authorization: Bearer &lt;CRON_SECRET&gt;</code>.
+                </p>
+                <p>
+                  A GitHub Actions workflow (<code className="font-mono bg-blue-100 px-1 rounded">.github/workflows/reminders.yml</code>) is
+                  included — set the <strong>CRON_SECRET</strong> and <strong>APP_URL</strong> secrets in your
+                  GitHub repository settings to activate it.
+                </p>
               </div>
             </div>
           </div>

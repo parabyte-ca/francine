@@ -99,6 +99,59 @@ export async function sendAppointmentConfirmation(params: {
   await sendEmail({ to: params.to, subject, htmlBody });
 }
 
+export async function sendReminderEmail(params: {
+  to: string;
+  clientName: string;
+  invoiceNumber: string;
+  total: number;
+  dueDate: string;
+  driveUrl: string;
+  reminderCount: number; // 1 = first reminder, 2 = second, …
+  note?: string;
+}): Promise<void> {
+  const subject = `Friendly Reminder — Invoice ${params.invoiceNumber} is Outstanding`;
+  const isOverdue = new Date(params.dueDate) < new Date();
+  const noteHtml = params.note
+    ? `<p style="background:#fef9e8; border-left:3px solid #d97706; padding:10px 14px; margin:16px 0; font-size:14px;">${esc(params.note)}</p>`
+    : "";
+
+  const htmlBody = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2 style="color: #d97706;">Payment Reminder</h2>
+      <p>Hi ${esc(params.clientName)},</p>
+      <p>${isOverdue
+        ? `This is a friendly reminder that the following invoice is <strong>overdue</strong>.`
+        : `This is a friendly reminder that the following invoice will be due soon.`}
+      </p>
+      <table style="width:100%; border-collapse:collapse; margin:16px 0;">
+        <tr>
+          <td style="padding:8px; border:1px solid #e5e7eb;"><strong>Invoice #</strong></td>
+          <td style="padding:8px; border:1px solid #e5e7eb;">${esc(params.invoiceNumber)}</td>
+        </tr>
+        <tr>
+          <td style="padding:8px; border:1px solid #e5e7eb;"><strong>Amount Due</strong></td>
+          <td style="padding:8px; border:1px solid #e5e7eb; color:#dc2626;"><strong>$${params.total.toFixed(2)}</strong></td>
+        </tr>
+        <tr>
+          <td style="padding:8px; border:1px solid #e5e7eb;"><strong>Due Date</strong></td>
+          <td style="padding:8px; border:1px solid #e5e7eb;">${esc(params.dueDate)}</td>
+        </tr>
+      </table>
+      ${noteHtml}
+      ${params.driveUrl ? `
+      <p>
+        <a href="${esc(params.driveUrl)}" style="background:#d97706; color:white; padding:10px 20px;
+           border-radius:4px; text-decoration:none;">View Invoice PDF</a>
+      </p>` : ""}
+      <p>If you have already sent payment, please disregard this message.</p>
+      <p style="color:#6b7280; font-size:12px;">
+        If you have any questions or need to discuss payment terms, please reply to this email.
+      </p>
+    </div>`;
+
+  await sendEmail({ to: params.to, subject, htmlBody });
+}
+
 export async function sendPaymentReceiptEmail(params: {
   to: string;
   clientName: string;
