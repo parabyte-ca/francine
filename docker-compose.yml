@@ -36,7 +36,7 @@ services:
       AUTH_TRUST_HOST: "true"
     # Health check: ping the Next.js server every 30 s
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:3002/api/health || exit 1"]
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3002/api/health', r => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
       interval: 10s
       timeout: 10s
       retries: 3
