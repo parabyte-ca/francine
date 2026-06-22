@@ -11,7 +11,7 @@ const STATUS_MAP: Record<string, string> = {
   cancelled:   "badge-red",
   // Invoice statuses
   draft:       "badge-gray",
-  sent:        "badge-blue",
+  sent:        "badge-red",
   paid:        "badge-green",
   overdue:     "badge-red",
   void:        "badge-gray",
@@ -22,6 +22,7 @@ const STATUS_MAP: Record<string, string> = {
 
 const LABELS: Record<string, string> = {
   no_show: "No Show",
+  sent:    "Unpaid",
 };
 
 export default function StatusBadge({ status }: { status: AnyStatus }) {

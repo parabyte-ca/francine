@@ -47,9 +47,18 @@ export default async function InvoiceDetailPage({ params }: { params: { id: stri
                 <StatusBadge status={invoice.status} />
               </div>
               {client && (
-                <div className="mt-1">
+                <div className="mt-1 space-y-0.5">
+                  {/* Contact name + title (FR-026) */}
+                  {(invoice.contact_name || invoice.contact_title) && (
+                    <p className="text-sm font-medium text-gray-800">
+                      {invoice.contact_name || client.name}
+                      {invoice.contact_title && (
+                        <span className="font-normal text-gray-500"> — {invoice.contact_title}</span>
+                      )}
+                    </p>
+                  )}
                   {client.company && (
-                    <p className="text-sm font-medium text-gray-800">{client.company}</p>
+                    <p className="text-sm text-gray-700">{client.company}</p>
                   )}
                   <Link href={`/customers/${client.client_id}`} className="text-xs text-brand-600 hover:underline">
                     {client.name}
@@ -103,9 +112,8 @@ export default async function InvoiceDetailPage({ params }: { params: { id: stri
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left border-b text-gray-500">
-                    <th className="pb-2 font-medium pr-4">Interpretation</th>
                     <th className="pb-2 font-medium pr-4">Description</th>
-                    <th className="pb-2 font-medium pr-4 text-right">Duration</th>
+                    <th className="pb-2 font-medium pr-4 text-right">Rate</th>
                     <th className="pb-2 font-medium pr-4 text-right">Unit Price</th>
                     <th className="pb-2 font-medium text-right">Total</th>
                   </tr>
@@ -113,9 +121,8 @@ export default async function InvoiceDetailPage({ params }: { params: { id: stri
                 <tbody>
                   {lineItems.map((item) => (
                     <tr key={item.line_item_id} className="border-b last:border-0">
-                      <td className="py-2 pr-4 text-gray-800">{item.service_type}</td>
-                      <td className="py-2 pr-4 text-gray-600">{item.description}</td>
-                      <td className="py-2 pr-4 text-right">{formatDuration(item)}</td>
+                      <td className="py-2 pr-4 text-gray-800">{item.description || item.service_type}</td>
+                      <td className="py-2 pr-4 text-right text-gray-600">{formatDuration(item)}</td>
                       <td className="py-2 pr-4 text-right">${item.unit_price.toFixed(2)}</td>
                       <td className="py-2 text-right font-medium">${item.total_price.toFixed(2)}</td>
                     </tr>
@@ -123,15 +130,15 @@ export default async function InvoiceDetailPage({ params }: { params: { id: stri
                 </tbody>
                 <tfoot>
                   <tr className="text-sm">
-                    <td colSpan={4} className="pt-4 pr-4 text-right text-gray-500">Subtotal</td>
+                    <td colSpan={3} className="pt-4 pr-4 text-right text-gray-500">Subtotal</td>
                     <td className="pt-4 text-right">${invoice.subtotal.toFixed(2)}</td>
                   </tr>
                   <tr className="text-sm">
-                    <td colSpan={4} className="py-1 pr-4 text-right text-gray-500">HST ({invoice.tax_rate}%)</td>
+                    <td colSpan={3} className="py-1 pr-4 text-right text-gray-500">HST ({invoice.tax_rate}%)</td>
                     <td className="py-1 text-right">${invoice.tax_amount.toFixed(2)}</td>
                   </tr>
                   <tr className="text-sm font-semibold">
-                    <td colSpan={4} className="pt-2 pr-4 text-right text-gray-900 border-t">Total</td>
+                    <td colSpan={3} className="pt-2 pr-4 text-right text-gray-900 border-t">Total</td>
                     <td className="pt-2 text-right text-gray-900 border-t">${invoice.total.toFixed(2)}</td>
                   </tr>
                 </tfoot>

@@ -77,7 +77,7 @@ export default async function OrderDetailPage({ params }: { params: { id: string
                 </div>
               )}
             </div>
-            <OrderActions orderId={params.id} status={order.status} hasInvoice={orderInvoices.length > 0} order={order as Order} />
+            <OrderActions orderId={params.id} status={order.status} hasInvoice={orderInvoices.length > 0} order={order as Order} client={client ?? undefined} />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6 pt-6 border-t text-sm">
