@@ -50,7 +50,8 @@ export interface Client {
   province:    string;
   postal_code: string;
   company: string;
-  language_pair?: string;     // e.g. "EN-FR" — Interpreter Intelligence specific
+  department: string;         // department within the org — each dept is a distinct billing entity
+  language_pair?: string;     // e.g. "EN-FR" — retained in DB, not shown in UI
   has_custom_rates: boolean;  // flag: at least one Custom_Rate row exists
   default_tax_exempt: boolean;
   notes: string;
@@ -58,6 +59,7 @@ export interface Client {
   updated_at: string;
   abbreviation: string;       // 2-char invoice prefix, e.g. "HL" for "High Life"
   contacts: string;            // comma-separated list of contacts at the client org
+  drive_folder_url: string;   // Google Drive folder URL for invoices / receipts
 }
 
 // ---------------------------------------------------------------------------

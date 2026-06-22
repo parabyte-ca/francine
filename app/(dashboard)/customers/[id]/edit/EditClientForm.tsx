@@ -11,18 +11,18 @@ import type { Client } from "@/types";
 import { computeClientAbbr } from "@/lib/invoice-utils";
 
 const schema = z.object({
-  name:               z.string().min(1, "Name is required"),
-  email:              z.string().email("Valid email required"),
-  phone:              z.string().default(""),
-  street:             z.string().default(""),
-  city:               z.string().default(""),
-  province:           z.string().default(""),
-  postal_code:        z.string().default(""),
-  company:            z.string().default(""),
-  language_pair:      z.string().default(""),
-  default_tax_exempt: z.boolean().default(false),
-  notes:              z.string().default(""),
-  abbreviation:       z.string().default(""),
+  name:             z.string().min(1, "Name is required"),
+  email:            z.string().email("Valid email required"),
+  phone:            z.string().default(""),
+  street:           z.string().default(""),
+  city:             z.string().default(""),
+  province:         z.string().default(""),
+  postal_code:      z.string().default(""),
+  company:          z.string().default(""),
+  department:       z.string().default(""),
+  notes:            z.string().default(""),
+  abbreviation:     z.string().default(""),
+  drive_folder_url: z.string().default(""),
 });
 type FormData = z.infer<typeof schema>;
 
@@ -44,18 +44,18 @@ export default function EditClientForm({ client }: { client: Client }) {
   } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
-      name:               client.name,
-      email:              client.email,
-      phone:              client.phone,
-      street:             client.street,
-      city:               client.city,
-      province:           client.province,
-      postal_code:        client.postal_code,
-      company:            client.company,
-      language_pair:      client.language_pair ?? "",
-      default_tax_exempt: client.default_tax_exempt,
-      notes:              client.notes,
-      abbreviation:       client.abbreviation || computeClientAbbr(client.company || "", client.name),
+      name:             client.name,
+      email:            client.email,
+      phone:            client.phone,
+      street:           client.street,
+      city:             client.city,
+      province:         client.province,
+      postal_code:      client.postal_code,
+      company:          client.company,
+      department:       client.department ?? "",
+      notes:            client.notes,
+      abbreviation:     client.abbreviation || computeClientAbbr(client.company || "", client.name),
+      drive_folder_url: client.drive_folder_url ?? "",
     },
   });
 
@@ -101,21 +101,25 @@ export default function EditClientForm({ client }: { client: Client }) {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label className="label">Primary Contact *</label>
-          <input type="text" {...register("name")} className="input" />
-          {errors.name && <p className="text-xs text-red-600 mt-1">{errors.name.message}</p>}
+          <label className="label">Organization</label>
+          <input type="text" {...register("company")} className="input" placeholder="Toronto Metropolitan University" />
         </div>
         <div>
-          <label className="label">Company</label>
-          <input type="text" {...register("company")} className="input" />
+          <label className="label">Department</label>
+          <input type="text" {...register("department")} className="input" placeholder="Continuing Ed" />
         </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
+          <label className="label">Primary Contact *</label>
+          <input type="text" {...register("name")} className="input" />
+          {errors.name && <p className="text-xs text-red-600 mt-1">{errors.name.message}</p>}
+        </div>
+        <div>
           <label className="label">
             Abbreviation
-            <span className="ml-1 text-xs font-normal text-gray-400">(based on company name, used in invoice numbers, e.g. GWL)</span>
+            <span className="ml-1 text-xs font-normal text-gray-400">(used in invoice numbers, e.g. TMU)</span>
           </label>
           <input
             type="text"
@@ -163,22 +167,15 @@ export default function EditClientForm({ client }: { client: Client }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label className="label">Language Pair</label>
-          <input
-            type="text"
-            {...register("language_pair")}
-            className="input"
-            placeholder="e.g. EN-FR"
-          />
-        </div>
-        <div className="flex items-end pb-1">
-          <label className="inline-flex items-center gap-2 text-sm text-gray-700">
-            <input type="checkbox" {...register("default_tax_exempt")} className="rounded" />
-            Tax Exempt
-          </label>
-        </div>
+      <div>
+        <label className="label">Drive Folder URL</label>
+        <input
+          type="url"
+          {...register("drive_folder_url")}
+          className="input"
+          placeholder="https://drive.google.com/drive/folders/…"
+        />
+        <p className="text-xs text-gray-400 mt-1">Paste a Google Drive folder URL to store invoices and receipts for this client.</p>
       </div>
 
       <div>
