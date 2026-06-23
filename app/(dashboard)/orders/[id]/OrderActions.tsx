@@ -3,10 +3,9 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, FileText, CheckCircle2, XCircle } from "lucide-react";
-import type { Order, Client, StandardRate } from "@/types";
+import type { Order, Client, StandardRate, OrderStatus } from "@/types";
 
-const STATUSES = ["quote", "scheduled", "completed", "cancelled"] as const;
-type OrderStatus = typeof STATUSES[number];
+const STATUSES: OrderStatus[] = ["quote", "scheduled", "completed", "cancelled"];
 
 interface Props {
   orderId: string;

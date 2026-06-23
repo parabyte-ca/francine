@@ -8,19 +8,9 @@ import {
   Database, DollarSign, Pencil, Plus, X, Check, User, Bell,
 } from "lucide-react";
 import pkg from "@/package.json";
+import type { StandardRate } from "@/types";
 
 type SetupResult = { message: string; results: Record<string, string> };
-
-interface StandardRate {
-  rate_id: string;
-  service_type: string;
-  unit: string;
-  base_price: number;
-  minimum_charge: number;
-  description: string;
-  active: boolean;
-  effective_date: string;
-}
 
 const DEFAULT_RATES: Omit<StandardRate, "rate_id" | "active" | "effective_date">[] = [
   { service_type: "ASL-English Interpretation < 90 min", unit: "session",  base_price: 230, minimum_charge: 230, description: "< 90 minutes" },

@@ -8,7 +8,7 @@ import "react-big-calendar/lib/css/react-big-calendar.css";
 import Topbar from "@/components/Topbar";
 import { Loader2, X, MapPin, Video, Clock, User, FileText, Plus, AlertTriangle, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
-import type { Appointment, Client, Order } from "@/types";
+import type { Appointment, Client, Order, AppointmentStatus } from "@/types";
 
 const localizer = dateFnsLocalizer({
   format,
@@ -18,7 +18,6 @@ const localizer = dateFnsLocalizer({
   locales: { "en-CA": enCA },
 });
 
-type AppointmentStatus = "scheduled" | "confirmed" | "cancelled" | "completed" | "no_show";
 const APPT_STATUSES: AppointmentStatus[] = ["scheduled", "confirmed", "completed", "no_show", "cancelled"];
 
 interface CalendarEvent {
