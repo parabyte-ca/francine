@@ -1,6 +1,6 @@
 # Francine CRM
 
-**Version 0.9.3**
+**Version 0.10.0**
 
 A lightweight, Google Workspace-backed CRM for SMB service operations. Francine replaces heavy platforms like Jobber with a purpose-built Next.js front-end that uses Google Sheets as its database, Google Calendar for scheduling, Google Drive for invoice storage, and Gmail for transactional email — with no third-party SaaS subscription required.
 
@@ -48,6 +48,7 @@ Every stage maps to a row update in Google Sheets. Appointments sync two-way wit
 | **Invoice Delivery** | Gmail API sends PDF as email attachment; status advances to `sent` |
 | **Payment Tracking** | Dashboard marks invoices paid; records method and reference; sends optional receipt email |
 | **Health Check** | `GET /api/health` for Docker and load-balancer probes |
+| **In-app updates** | Shows new GitHub releases and their notes; an owner can upgrade the server with one button, through a small helper on the host — the app never gets Docker or root access ([docs/updates.md](docs/updates.md)) |
 
 ---
 
@@ -80,7 +81,8 @@ francine/
 │   │   ├── customers/          # Client grid + Customer 360 ([id]/)
 │   │   ├── scheduling/         # Interactive calendar + booking modal
 │   │   ├── invoices/           # Invoice list with status filter tabs
-│   │   └── payments/           # Payment dashboard + record-payment modal
+│   │   ├── payments/           # Payment dashboard + record-payment modal
+│   │   └── updates/            # New releases, release notes and one-button upgrade
 │   ├── api/
 │   │   ├── auth/[...nextauth]/ # NextAuth handler
 │   │   ├── orders/             # GET list, POST create, PATCH [id]
@@ -93,6 +95,8 @@ francine/
 │   │   ├── rates/              # GET standard+custom, POST custom rate
 │   │   ├── setup/              # POST — one-time sheet header init
 │   │   ├── health/             # GET — Docker/LB health probe
+│   │   ├── admin/updates/      # GET status, POST check, POST upgrade
+│   │   ├── cron/               # Secret-protected scheduled jobs (reminders, release check)
 │   │   └── webhooks/calendar/  # POST — Google Calendar push notifications
 │   ├── login/                  # Sign-in page
 │   └── layout.tsx / globals.css
@@ -104,6 +108,7 @@ francine/
 │   ├── auth.ts                 # NextAuth config (Google OAuth + JWT callbacks)
 │   ├── pricing-engine.ts       # 3-tier price resolver + invoice totals calculator
 │   ├── pdf-generator.ts        # A4 invoice PDF layout via pdf-lib
+│   ├── updates/                # Release check, upgrade folder, upgrade rules
 │   └── google/
 │       ├── auth.ts             # Service account + OAuth2 client factory
 │       ├── sheets.ts           # Full data access layer — all 7 sheet tabs
@@ -112,6 +117,13 @@ francine/
 │       └── gmail.ts            # Invoice email, appointment confirmation, receipt
 ├── types/
 │   └── index.ts                # Shared TypeScript types (mirrors Sheets schema)
+├── scripts/
+│   ├── upgrade-agent.sh        # Root helper on the host that runs app-requested upgrades
+│   ├── test-upgrade-agent.sh   # Tests for the helper (run with sudo)
+│   └── backup-sheets.mjs       # Google Sheet snapshot taken by update.sh
+├── tests/                      # Unit tests (npm test)
+├── docs/updates.md             # Release checks and upgrades
+├── update.sh                   # Safe upgrade: backup, trial start, restart, rollback
 ├── Dockerfile                  # Multi-stage build (deps → builder → runner)
 ├── docker-compose.yml          # Production-style Compose with health check
 ├── .dockerignore
@@ -158,6 +170,11 @@ cp .env.example .env.local
 | `GMAIL_FROM_ADDRESS` | From address for outgoing emails |
 | `NEXT_PUBLIC_APP_NAME` | Display name shown in the UI |
 | `NEXT_PUBLIC_APP_URL` | Public URL (used for OAuth callbacks) |
+| `CRON_SECRET` | Bearer token for the scheduled jobs under `/api/cron/` |
+| `APP_SOURCE_URL` | GitHub repository whose releases are checked (default `https://github.com/parabyte-ca/francine`) |
+| `APP_UPDATE_CHECK` | `false` turns off the daily release check |
+| `APP_UPGRADE_FOLDER` | Host folder shared with the upgrade helper (default `./upgrade`) |
+| `APP_UPGRADE_ARGS` | Extra `update.sh` options for app-started upgrades: `--pull`, `--skip-preflight` |
 
 To encode the service account key:
 
@@ -183,6 +200,7 @@ npm run build      # Production build
 npm run start      # Run production build
 npm run typecheck  # TypeScript check without emitting
 npm run lint       # ESLint
+npm test           # Unit tests
 ```
 
 ---
@@ -213,6 +231,15 @@ docker compose up -d --build
 docker compose logs -f   # follow logs
 docker compose down      # stop
 ```
+
+### Updating
+
+```bash
+./update.sh --pull     # backup, build, trial start, restart; rolls back on failure
+```
+
+To upgrade from the app instead, set up the helper once with
+`sudo ./scripts/upgrade-agent.sh --install`. See [docs/updates.md](docs/updates.md).
 
 ### Docker image details
 
@@ -304,6 +331,10 @@ All routes require an authenticated session (Google OAuth). Responses follow `{ 
 | `POST` | `/api/rates` | Add a custom rate for a client |
 | `POST` | `/api/setup` | One-time: initialize sheet header rows |
 | `GET` | `/api/health` | Health check — returns `{ status: "ok" }` |
+| `GET` | `/api/admin/updates` | Release and upgrade status (`?summary=1` for the sidebar) |
+| `POST` | `/api/admin/updates/check` | Check GitHub for a new release now (at most once a minute) |
+| `POST` | `/api/admin/updates/upgrade` | Ask the host helper to upgrade to the latest release `{ version }` |
+| `GET` | `/api/cron/check-updates` | Daily release check (`Authorization: Bearer CRON_SECRET`) |
 | `POST` | `/api/webhooks/calendar` | Google Calendar push notification receiver |
 
 ---
@@ -330,6 +361,20 @@ Every line item records its `rate_source` (`standard`, `custom`, or `manual_over
 ---
 
 ## Changelog
+
+### v0.10.0 — Updates page and upgrading from the app
+
+- New **Updates** page (`app/(dashboard)/updates/`) and sidebar link with a dot when a release is available: running version, latest GitHub release with its notes, **Check now**, server helper status, upgrade progress and log, and an **Upgrade to x.y.z** button behind a confirmation
+- `lib/updates/`: daily release check of `APP_SOURCE_URL` (plain `v1.2.3` tags only), cached in the `Config` tab, keeping the last good release when a check fails; one `system.update_available` audit event per release
+- `app/api/admin/updates/` (status, check, upgrade) and `app/api/cron/check-updates/`, plus `.github/workflows/update-check.yml`; upgrades need a signed-in browser session on Francine's own address, the latest and newer version, a connected helper and nothing already in progress
+- `scripts/upgrade-agent.sh` (new): root helper on the host that picks up requests from the shared upgrade folder and runs `update.sh` as the checkout's owner; `--install`, `--print`, `--uninstall`, `--every N`
+- `update.sh` rewritten: one run at a time, Google Sheet backup (`scripts/backup-sheets.mjs`), trial start of the new image in a throwaway container, automatic rollback to the previous image and code; new `--version`, `--pull`, `--no-git` (was `--no-pull`), `--skip-preflight`, `--rollback-rev`. **No longer refreshes the Node base image by default — add `--pull`.**
+- `lib/google/sheets.ts`: new append-only `Audit` tab (created automatically)
+- `docker-compose.yml`: mounts `APP_UPGRADE_FOLDER` (default `./upgrade`) at `/upgrade`
+- `instrumentation.ts`: skips Calendar watch renewal in the trial container
+- Unit tests (`npm test`), ShellCheck and helper tests in CI; `docs/updates.md`
+
+---
 
 ### v0.9.3 — Health check fix, client combobox, hours, mileage/parking, HST, tax report
 

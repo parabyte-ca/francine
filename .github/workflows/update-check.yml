@@ -1,0 +1,22 @@
+name: Release check
+
+# Asks Francine to check GitHub for a new release once a day, so the Updates
+# page and the sidebar show it promptly. Uses the same APP_URL and CRON_SECRET
+# repository secrets as the payment-reminders workflow. Francine also checks
+# on its own when the Updates page is opened and the last check is over a day old.
+
+on:
+  schedule:
+    - cron: "17 10 * * *" # daily, 10:17 UTC
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger the release check
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          curl -fsS -H "Authorization: Bearer ${CRON_SECRET}" "${APP_URL}/api/cron/check-updates" | jq .

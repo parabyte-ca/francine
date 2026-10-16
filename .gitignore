@@ -36,3 +36,13 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# in-app upgrades and update.sh
+/upgrade/
+/backups/
+/.update/
+/.update.lock
+/.francine-agent.*
+
+# compiled tests
+/.test-build/

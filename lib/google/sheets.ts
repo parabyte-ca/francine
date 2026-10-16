@@ -12,6 +12,8 @@
  *   - Appointments
  *   - Invoices
  *   - Invoice_Line_Items
+ *   - Config (key/value settings)
+ *   - Audit  (append-only event log)
  *
  * Design decisions:
  *   - Row 1 in every sheet is a header row; data starts at row 2.
@@ -492,6 +494,69 @@ export async function setConfig(key: string, value: string): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
+// Audit log (append-only)
+// ---------------------------------------------------------------------------
+const AUDIT_HEADERS = ["event_id", "event", "actor", "details", "created_at"];
+
+function isMissingTabError(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err);
+  return msg.includes("Unable to parse range");
+}
+
+async function ensureAuditTab(): Promise<void> {
+  const sheets = getSheetsClient();
+  await sheets.spreadsheets.batchUpdate({
+    spreadsheetId: SHEET_ID(),
+    requestBody: { requests: [{ addSheet: { properties: { title: "Audit" } } }] },
+  }).catch((err: unknown) => {
+    if (!String(err instanceof Error ? err.message : err).includes("already exists")) throw err;
+  });
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: SHEET_ID(),
+    range: "Audit!A1",
+    valueInputOption: "RAW",
+    requestBody: { values: [AUDIT_HEADERS] },
+  });
+}
+
+export async function auditEventExists(eventId: string): Promise<boolean> {
+  try {
+    const res = await getSheetsClient().spreadsheets.values.get({
+      spreadsheetId: SHEET_ID(),
+      range: "Audit!A2:A10000",
+    });
+    return (res.data.values ?? []).some((r) => r[0] === eventId);
+  } catch (err) {
+    if (isMissingTabError(err)) return false;
+    throw err;
+  }
+}
+
+/** Appends one row to the Audit tab, creating the tab if setup predates it. */
+export async function appendAuditEvent(e: {
+  event_id: string;
+  event: string;
+  actor: string;
+  details: Record<string, unknown>;
+}): Promise<void> {
+  const row = [e.event_id, e.event, e.actor, JSON.stringify(e.details), new Date().toISOString()];
+  const append = () =>
+    getSheetsClient().spreadsheets.values.append({
+      spreadsheetId: SHEET_ID(),
+      range: "Audit!A1",
+      valueInputOption: "RAW",
+      requestBody: { values: [row] },
+    });
+  try {
+    await append();
+  } catch (err) {
+    if (!isMissingTabError(err)) throw err;
+    await ensureAuditTab();
+    await append();
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Utility: initialize sheet headers (run once during setup)
 // ---------------------------------------------------------------------------
 export async function initializeSheetHeaders(): Promise<void> {
@@ -507,6 +572,7 @@ export async function initializeSheetHeaders(): Promise<void> {
     { name: "Invoices",           headers: INVOICE_HEADERS },
     { name: "Invoice_Line_Items", headers: LINE_ITEM_HEADERS },
     { name: "Config",             headers: ["key", "value", "updated_at"] },
+    { name: "Audit",              headers: AUDIT_HEADERS },
   ];
 
   // Discover which tabs already exist

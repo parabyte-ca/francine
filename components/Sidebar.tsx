@@ -12,6 +12,7 @@ import {
   FileText,
   CreditCard,
   Settings,
+  ArrowUpCircle,
   ChevronRight,
   Menu,
   X,
@@ -30,9 +31,18 @@ export default function Sidebar() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
+  const [updateAvailable, setUpdateAvailable] = useState(false);
+
   useEffect(() => {
     setOpen(false);
   }, [pathname]);
+
+  useEffect(() => {
+    fetch("/api/admin/updates?summary=1")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => setUpdateAvailable(!!j?.data?.update_available))
+      .catch(() => {});
+  }, []);
 
   return (
     <>
@@ -107,8 +117,26 @@ export default function Sidebar() {
           })}
         </nav>
 
-        {/* Bottom: settings */}
-        <div className="px-3 py-4 border-t">
+        {/* Bottom: updates + settings */}
+        <div className="px-3 py-4 border-t space-y-0.5">
+          <Link
+            href="/updates"
+            className={clsx(
+              "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors",
+              pathname === "/updates"
+                ? "bg-brand-50 text-brand-700 font-medium"
+                : "text-gray-600 hover:bg-gray-50"
+            )}
+          >
+            <ArrowUpCircle className={clsx("w-4 h-4", pathname === "/updates" ? "text-brand-600" : "text-gray-400")} />
+            Updates
+            {updateAvailable && (
+              <span className="ml-auto flex items-center">
+                <span className="w-2 h-2 rounded-full bg-brand-500" aria-hidden />
+                <span className="sr-only">(update available)</span>
+              </span>
+            )}
+          </Link>
           <Link
             href="/setup"
             className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition-colors"
