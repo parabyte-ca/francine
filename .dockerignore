@@ -35,3 +35,12 @@ coverage
 Dockerfile
 docker-compose*.yml
 .dockerignore
+
+# Upgrade folder, Sheet backups and update.sh state — never copy into an image
+upgrade
+backups
+.update
+.update.lock
+.francine-agent.*
+.test-build
+tests

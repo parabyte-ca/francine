@@ -14,6 +14,9 @@
 
 export async function register() {
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
+  // update.sh starts a throwaway copy of a new release to check it boots;
+  // that copy must not touch Google Calendar.
+  if (process.env.FRANCINE_PREFLIGHT === "1") return;
 
   const { renewCalendarWatchIfNeeded } = await import(
     "./lib/google/calendar"

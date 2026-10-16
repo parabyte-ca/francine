@@ -29,6 +29,9 @@ jobs:
       - name: Type-check
         run: npx tsc --noEmit
 
+      - name: Unit tests
+        run: npm test
+
       - name: Build
         run: npm run build
         env:
@@ -43,3 +46,17 @@ jobs:
           NEXTAUTH_URL: http://localhost:3000
           AUTH_URL: http://localhost:3000
           AUTH_TRUST_HOST: "true"
+
+  shell:
+    name: Shell scripts
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: ShellCheck
+        run: shellcheck update.sh scripts/upgrade-agent.sh scripts/test-upgrade-agent.sh
+
+      # The helper refuses to run without root, so its tests need sudo.
+      - name: Upgrade helper tests
+        run: sudo bash scripts/test-upgrade-agent.sh

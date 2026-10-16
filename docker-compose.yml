@@ -34,6 +34,12 @@ services:
       AUTH_URL: "https://francine.lantix.ca"
       NEXTAUTH_URL: "https://francine.lantix.ca"
       AUTH_TRUST_HOST: "true"
+      # In-app upgrades: the shared folder the host helper watches (docs/updates.md)
+      APP_UPGRADE_DIR: /upgrade
+    volumes:
+      # Created by update.sh / scripts/upgrade-agent.sh --install, owned by uid 1001.
+      # Set APP_UPGRADE_FOLDER in .env.local to move it; update.sh passes it through.
+      - ${APP_UPGRADE_FOLDER:-./upgrade}:/upgrade
     # Health check: ping the Next.js server every 30 s
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:3002/api/health', r => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
